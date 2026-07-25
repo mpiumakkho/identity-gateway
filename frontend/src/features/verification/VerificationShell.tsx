@@ -4,6 +4,7 @@ import type { AuthSession } from "../auth/types";
 import { DipChipPanel } from "./DipChipPanel";
 import { DopaPanel } from "./DopaPanel";
 import { ManualIdentityPanel } from "./ManualIdentityPanel";
+import { SummaryPanel } from "./SummaryPanel";
 import type { MethodId, VerificationSession } from "./types";
 
 const methods: Array<{ id: MethodId; label: string; detail: string }> = [
@@ -343,6 +344,14 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
                 onSaved={mergeSession}
                 onSessionExpired={onSessionExpired}
               />
+
+              <SummaryPanel
+                accessToken={operator.accessToken}
+                session={activeSession}
+                onError={setError}
+                onSaved={mergeSession}
+                onSessionExpired={onSessionExpired}
+              />
             </div>
           </div>
 
@@ -405,11 +414,11 @@ function methodLabel(method: MethodId) {
 }
 
 function statusClassName(status: string) {
-  if (status === "DOPA_VERIFIED") {
+  if (status === "DOPA_VERIFIED" || status === "APPROVED") {
     return "text-emerald-700";
   }
 
-  if (status === "DOPA_REJECTED") {
+  if (status === "DOPA_REJECTED" || status === "REJECTED") {
     return "text-red-700";
   }
 
@@ -417,6 +426,10 @@ function statusClassName(status: string) {
 }
 
 function workflowIndex(status?: string) {
+  if (status === "APPROVED" || status === "REJECTED") {
+    return 3;
+  }
+
   if (status === "DOPA_VERIFIED" || status === "DOPA_REJECTED") {
     return 2;
   }

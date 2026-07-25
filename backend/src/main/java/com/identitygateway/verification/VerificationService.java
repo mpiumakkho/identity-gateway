@@ -15,21 +15,25 @@ import java.util.UUID;
 public class VerificationService {
 
     private static final String SESSION_NOT_FOUND_MESSAGE = "Verification session not found.";
+    private static final String SESSION_CLOSED_MESSAGE = "Verification session is already closed.";
 
     private final VerificationSessionRepository verificationSessionRepository;
     private final ManualIdentityEntryRepository manualIdentityEntryRepository;
     private final DipChipIdentityEntryRepository dipChipIdentityEntryRepository;
+    private final VerificationDecisionRepository verificationDecisionRepository;
     private final OperatorUserRepository operatorUserRepository;
 
     public VerificationService(
             VerificationSessionRepository verificationSessionRepository,
             ManualIdentityEntryRepository manualIdentityEntryRepository,
             DipChipIdentityEntryRepository dipChipIdentityEntryRepository,
+            VerificationDecisionRepository verificationDecisionRepository,
             OperatorUserRepository operatorUserRepository
     ) {
         this.verificationSessionRepository = verificationSessionRepository;
         this.manualIdentityEntryRepository = manualIdentityEntryRepository;
         this.dipChipIdentityEntryRepository = dipChipIdentityEntryRepository;
+        this.verificationDecisionRepository = verificationDecisionRepository;
         this.operatorUserRepository = operatorUserRepository;
     }
 
@@ -63,6 +67,7 @@ public class VerificationService {
     @Transactional
     public ManualIdentityResponse saveManualIdentity(UUID transactionId, ManualIdentityRequest request) {
         VerificationSessionEntity session = requireSession(transactionId);
+        requireOpen(session);
         requireMethod(session, VerificationMethod.MANUAL_ENTRY, "Manual identity can only be captured for MANUAL_ENTRY sessions.");
 
         ManualIdentityEntry entry = manualIdentityEntryRepository.findBySessionId(session.getId())
@@ -78,6 +83,7 @@ public class VerificationService {
     @Transactional
     public DipChipPayloadResponse saveDipChipPayload(UUID transactionId, DipChipPayloadRequest request) {
         VerificationSessionEntity session = requireSession(transactionId);
+        requireOpen(session);
         requireMethod(session, VerificationMethod.DIP_CHIP, "Dip Chip payload can only be captured for DIP_CHIP sessions.");
         requireValidCardDates(request);
 
@@ -89,6 +95,32 @@ public class VerificationService {
         DipChipIdentityEntry savedEntry = dipChipIdentityEntryRepository.save(entry);
 
         return toDipChipPayloadResponse(session, savedEntry);
+    }
+
+    @Transactional
+    public VerificationCloseoutResponse closeSession(
+            AuthenticatedOperator operator,
+            UUID transactionId,
+            CloseVerificationRequest request
+    ) {
+        VerificationSessionEntity session = requireSession(transactionId);
+        requireOpen(session);
+        requireDopaDecisionReady(session);
+
+        VerificationDecision decision = VerificationDecision.from(request.decision());
+        requireDecisionAllowed(session, decision);
+
+        if (verificationDecisionRepository.existsBySessionId(session.getId())) {
+            throw new IllegalArgumentException(SESSION_CLOSED_MESSAGE);
+        }
+
+        OperatorUser decidedBy = operatorUserRepository.getReferenceById(operator.operatorId());
+        VerificationDecisionEntity closeout = verificationDecisionRepository.save(
+                VerificationDecisionEntity.create(session, decision, request.notes(), decidedBy)
+        );
+        session.close(decision);
+
+        return toCloseoutResponse(session, closeout);
     }
 
     private static void requireValidCardDates(DipChipPayloadRequest request) {
@@ -105,6 +137,24 @@ public class VerificationService {
     private static void requireMethod(VerificationSessionEntity session, VerificationMethod expectedMethod, String message) {
         if (session.getMethod() != expectedMethod) {
             throw new IllegalArgumentException(message);
+        }
+    }
+
+    private static void requireOpen(VerificationSessionEntity session) {
+        if (session.isClosed()) {
+            throw new IllegalArgumentException(SESSION_CLOSED_MESSAGE);
+        }
+    }
+
+    private static void requireDopaDecisionReady(VerificationSessionEntity session) {
+        if (session.getStatus() != VerificationStatus.DOPA_VERIFIED && session.getStatus() != VerificationStatus.DOPA_REJECTED) {
+            throw new IllegalArgumentException("DOPA validation must be completed before closeout.");
+        }
+    }
+
+    private static void requireDecisionAllowed(VerificationSessionEntity session, VerificationDecision decision) {
+        if (session.getStatus() == VerificationStatus.DOPA_REJECTED && decision == VerificationDecision.APPROVED) {
+            throw new IllegalArgumentException("DOPA rejected sessions cannot be approved.");
         }
     }
 
@@ -145,6 +195,17 @@ public class VerificationService {
                 entry.getReaderName(),
                 entry.getReaderSerialNumber(),
                 entry.getUpdatedAt()
+        );
+    }
+
+    private VerificationCloseoutResponse toCloseoutResponse(VerificationSessionEntity session, VerificationDecisionEntity closeout) {
+        return new VerificationCloseoutResponse(
+                session.getId(),
+                session.getStatus().name(),
+                closeout.getDecision().name(),
+                closeout.getNotes(),
+                SessionOperatorResponse.from(closeout.getDecidedBy()),
+                closeout.getDecidedAt()
         );
     }
 

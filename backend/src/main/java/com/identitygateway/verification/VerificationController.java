@@ -67,4 +67,13 @@ public class VerificationController {
     ) {
         return ApiResponse.ok(verificationService.saveDipChipPayload(transactionId, request));
     }
+
+    @PostMapping("/sessions/{transactionId}/closeout")
+    public ApiResponse<VerificationCloseoutResponse> closeSession(
+            @AuthenticationPrincipal AuthenticatedOperator operator,
+            @PathVariable UUID transactionId,
+            @Valid @RequestBody CloseVerificationRequest request
+    ) {
+        return ApiResponse.ok(verificationService.closeSession(operator, transactionId, request));
+    }
 }

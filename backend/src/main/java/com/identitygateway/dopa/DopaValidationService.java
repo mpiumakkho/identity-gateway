@@ -44,6 +44,10 @@ public class DopaValidationService {
         VerificationSessionEntity session = verificationSessionRepository.findDetailById(transactionId)
                 .orElseThrow(() -> new ResourceNotFoundException(SESSION_NOT_FOUND_MESSAGE));
 
+        if (session.isClosed()) {
+            throw new IllegalArgumentException("Verification session is already closed.");
+        }
+
         if (session.getStatus() == VerificationStatus.CREATED) {
             throw new IllegalArgumentException("Identity must be captured before DOPA validation.");
         }

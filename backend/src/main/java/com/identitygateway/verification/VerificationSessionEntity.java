@@ -85,6 +85,14 @@ public class VerificationSessionEntity {
         status = VerificationStatus.DOPA_REJECTED;
     }
 
+    public void close(VerificationDecision decision) {
+        status = decision == VerificationDecision.APPROVED ? VerificationStatus.APPROVED : VerificationStatus.REJECTED;
+    }
+
+    public boolean isClosed() {
+        return status == VerificationStatus.APPROVED || status == VerificationStatus.REJECTED;
+    }
+
     public OperatorUser getCreatedBy() {
         return createdBy;
     }

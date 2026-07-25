@@ -252,3 +252,34 @@ Response data:
 ```
 
 Invalid payloads return `400` with code `VALIDATION_ERROR`. Sessions without captured identity return `400` with code `BAD_REQUEST`.
+### `POST /verification/sessions/{transactionId}/closeout`
+
+Closes a transaction after DOPA validation and records the operator decision. Requires authentication. The session must be `DOPA_VERIFIED` or `DOPA_REJECTED`. `DOPA_REJECTED` sessions cannot be approved. A successful closeout moves the session to `APPROVED` or `REJECTED` and prevents further identity capture or DOPA validation.
+
+Request:
+
+```json
+{
+  "decision": "APPROVED",
+  "notes": "Matched and reviewed."
+}
+```
+
+Response data:
+
+```json
+{
+  "transactionId": "uuid",
+  "sessionStatus": "APPROVED",
+  "decision": "APPROVED",
+  "notes": "Matched and reviewed.",
+  "decidedBy": {
+    "operatorId": "uuid",
+    "username": "operator",
+    "displayName": "Operations User"
+  },
+  "decidedAt": "2026-07-25T00:00:00Z"
+}
+```
+
+Invalid payloads return `400` with code `VALIDATION_ERROR`. Transactions that are not ready for closeout return `400` with code `BAD_REQUEST`.

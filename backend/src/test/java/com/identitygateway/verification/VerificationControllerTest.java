@@ -234,6 +234,61 @@ class VerificationControllerTest {
     }
 
     @Test
+    void closeSessionReturnsDecisionSummary() throws Exception {
+        setAuthenticatedOperator();
+        UUID transactionId = UUID.fromString("b9d38258-8ec4-4645-a6ca-e901e1c1766a");
+        VerificationCloseoutResponse response = new VerificationCloseoutResponse(
+                transactionId,
+                "APPROVED",
+                "APPROVED",
+                "Matched and reviewed.",
+                new SessionOperatorResponse(
+                        UUID.fromString("9e04e2eb-d74a-4d55-987c-f38660aa3060"),
+                        "operator",
+                        "Operations User"
+                ),
+                Instant.parse("2026-07-25T02:00:00Z")
+        );
+        when(verificationService.closeSession(any(AuthenticatedOperator.class), any(UUID.class), any(CloseVerificationRequest.class))).thenReturn(response);
+
+        mockMvc.perform(post("/api/verification/sessions/{transactionId}/closeout", transactionId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "decision": "APPROVED",
+                                  "notes": "Matched and reviewed."
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("success"))
+                .andExpect(jsonPath("$.data.transactionId").value(transactionId.toString()))
+                .andExpect(jsonPath("$.data.sessionStatus").value("APPROVED"))
+                .andExpect(jsonPath("$.data.decision").value("APPROVED"))
+                .andExpect(jsonPath("$.data.notes").value("Matched and reviewed."))
+                .andExpect(jsonPath("$.data.decidedBy.username").value("operator"))
+                .andExpect(jsonPath("$.data.decidedAt").exists());
+    }
+
+    @Test
+    void closeSessionRejectsBlankDecision() throws Exception {
+        setAuthenticatedOperator();
+        UUID transactionId = UUID.fromString("b9d38258-8ec4-4645-a6ca-e901e1c1766a");
+
+        mockMvc.perform(post("/api/verification/sessions/{transactionId}/closeout", transactionId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "decision": "",
+                                  "notes": "Reviewed."
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("error"))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message", not(blankOrNullString())));
+    }
+
+    @Test
     void saveDipChipPayloadRejectsInvalidPayload() throws Exception {
         UUID transactionId = UUID.fromString("b9d38258-8ec4-4645-a6ca-e901e1c1766a");
 

@@ -35,6 +35,9 @@ class VerificationServiceTest {
     private DipChipIdentityEntryRepository dipChipIdentityEntryRepository;
 
     @Mock
+    private VerificationDecisionRepository verificationDecisionRepository;
+
+    @Mock
     private OperatorUserRepository operatorUserRepository;
 
     private VerificationService verificationService;
@@ -45,6 +48,7 @@ class VerificationServiceTest {
                 verificationSessionRepository,
                 manualIdentityEntryRepository,
                 dipChipIdentityEntryRepository,
+                verificationDecisionRepository,
                 operatorUserRepository
         );
     }
@@ -185,6 +189,78 @@ class VerificationServiceTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Dip Chip payload can only be captured for DIP_CHIP sessions.");
     }
+    @Test
+    void closeSessionApprovesDopaVerifiedTransaction() {
+        AuthenticatedOperator authenticatedOperator = authenticatedOperator();
+        VerificationSessionEntity session = sessionEntity(VerificationMethod.DIP_CHIP);
+        session.markDopaVerified();
+        OperatorUser operator = OperatorUser.create("operator", "hash", "Operations User", OperatorRole.OPERATIONS);
+        when(verificationSessionRepository.findDetailById(session.getId())).thenReturn(Optional.of(session));
+        when(verificationDecisionRepository.existsBySessionId(session.getId())).thenReturn(false);
+        when(operatorUserRepository.getReferenceById(authenticatedOperator.operatorId())).thenReturn(operator);
+        when(verificationDecisionRepository.save(any(VerificationDecisionEntity.class)))
+                .thenAnswer(invocation -> {
+                    VerificationDecisionEntity entity = invocation.getArgument(0);
+                    entity.prePersist();
+                    return entity;
+                });
+
+        VerificationCloseoutResponse response = verificationService.closeSession(
+                authenticatedOperator,
+                session.getId(),
+                new CloseVerificationRequest("APPROVED", "Matched and reviewed.")
+        );
+
+        assertThat(response.transactionId()).isEqualTo(session.getId());
+        assertThat(response.sessionStatus()).isEqualTo("APPROVED");
+        assertThat(response.decision()).isEqualTo("APPROVED");
+        assertThat(response.notes()).isEqualTo("Matched and reviewed.");
+        assertThat(response.decidedBy().username()).isEqualTo("operator");
+        assertThat(response.decidedAt()).isNotNull();
+        assertThat(session.getStatus()).isEqualTo(VerificationStatus.APPROVED);
+    }
+
+    @Test
+    void closeSessionRejectsBeforeDopaValidation() {
+        VerificationSessionEntity session = sessionEntity(VerificationMethod.DIP_CHIP);
+        session.markIdentityCaptured();
+        when(verificationSessionRepository.findDetailById(session.getId())).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> verificationService.closeSession(
+                authenticatedOperator(),
+                session.getId(),
+                new CloseVerificationRequest("APPROVED", "Reviewed.")
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("DOPA validation must be completed before closeout.");
+    }
+
+    @Test
+    void closeSessionRejectsApprovalForDopaRejectedTransaction() {
+        VerificationSessionEntity session = sessionEntity(VerificationMethod.MANUAL_ENTRY);
+        session.markDopaRejected();
+        when(verificationSessionRepository.findDetailById(session.getId())).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> verificationService.closeSession(
+                authenticatedOperator(),
+                session.getId(),
+                new CloseVerificationRequest("APPROVED", "Override.")
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("DOPA rejected sessions cannot be approved.");
+    }
+
+    @Test
+    void saveManualIdentityRejectsClosedSession() {
+        VerificationSessionEntity session = sessionEntity(VerificationMethod.MANUAL_ENTRY);
+        session.close(VerificationDecision.REJECTED);
+        when(verificationSessionRepository.findDetailById(session.getId())).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> verificationService.saveManualIdentity(session.getId(), manualRequest()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Verification session is already closed.");
+    }
+
     @Test
     void saveDipChipPayloadRejectsInvalidCardDateOrder() {
         VerificationSessionEntity session = sessionEntity(VerificationMethod.DIP_CHIP);

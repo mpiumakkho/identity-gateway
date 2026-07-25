@@ -71,3 +71,16 @@ export type DopaValidationResult = {
   consentReference: string;
   validatedAt: string;
 };
+export type CloseVerificationPayload = {
+  decision: "APPROVED" | "REJECTED";
+  notes: string;
+};
+
+export type VerificationCloseoutResult = {
+  transactionId: string;
+  sessionStatus: string;
+  decision: string;
+  notes: string | null;
+  decidedBy: SessionOperator;
+  decidedAt: string;
+};

@@ -4,5 +4,7 @@ public enum VerificationStatus {
     CREATED,
     IDENTITY_CAPTURED,
     DOPA_VERIFIED,
-    DOPA_REJECTED
+    DOPA_REJECTED,
+    APPROVED,
+    REJECTED
 }
