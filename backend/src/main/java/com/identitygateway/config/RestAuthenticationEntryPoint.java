@@ -1,5 +1,7 @@
 package com.identitygateway.config;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.identitygateway.common.api.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
@@ -10,10 +12,15 @@ import org.springframework.stereotype.Component;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 
 @Component
 public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
+
+    private final ObjectMapper objectMapper;
+
+    public RestAuthenticationEntryPoint(ObjectMapper objectMapper) {
+        this.objectMapper = objectMapper;
+    }
 
     @Override
     public void commence(
@@ -24,6 +31,9 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        response.getWriter().write("{\"status\":\"error\",\"code\":\"AUTHENTICATION_REQUIRED\",\"message\":\"Authentication required.\",\"data\":null,\"errors\":null,\"timestamp\":\"" + Instant.now() + "\"}");
+        objectMapper.writeValue(
+                response.getWriter(),
+                ApiResponse.error("AUTHENTICATION_REQUIRED", "Authentication required.")
+        );
     }
 }

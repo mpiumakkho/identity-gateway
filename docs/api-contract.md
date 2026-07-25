@@ -15,7 +15,7 @@ All application responses use this envelope:
 }
 ```
 
-Validation errors include field-level details in `errors`, while non-validation errors keep `errors` as `null`.
+Validation errors include field-level details in `errors`, while non-validation errors keep `errors` as `null`. Authentication failures use the same envelope with code `AUTHENTICATION_REQUIRED`.
 
 Protected endpoints require an opaque bearer token:
 
