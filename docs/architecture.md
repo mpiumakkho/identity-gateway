@@ -36,7 +36,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 
 1. Foundation flow: PostgreSQL, Flyway, BCrypt auth foundation, verification session persistence.
 2. Login flow: operator login, session/token strategy, protected app shell.
-3. Method flow: select `DIP_CHIP` or `MANUAL_ENTRY` and create a transaction session.
+3. Method flow: load enabled verification methods from the backend catalog, select `DIP_CHIP` or `MANUAL_ENTRY`, and create a transaction session.
 4. Manual identity flow: controlled citizen-data entry and validation.
 5. Dip Chip flow: card-reader payload capture and normalization. Done as a dedicated intake flow before DOPA integration.
 6. DOPA flow: citizen registry validation request, response mapping, and verified/rejected session status. Done with a local connector placeholder until partner integration details are configured.

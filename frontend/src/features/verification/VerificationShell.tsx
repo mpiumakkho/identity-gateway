@@ -10,11 +10,11 @@ import { DopaPanel } from "./DopaPanel";
 import { ManualIdentityPanel } from "./ManualIdentityPanel";
 import { OperationsDashboardPanel } from "./OperationsDashboardPanel";
 import { SummaryPanel } from "./SummaryPanel";
-import type { MethodId, VerificationSession } from "./types";
+import type { MethodId, VerificationMethodOption, VerificationSession } from "./types";
 
-const methods: Array<{ id: MethodId; label: string; detail: string }> = [
-  { id: "DIP_CHIP", label: "Dip Chip", detail: "Card reader" },
-  { id: "MANUAL_ENTRY", label: "Manual Entry", detail: "Controlled form" }
+const defaultMethods: VerificationMethodOption[] = [
+  { id: "DIP_CHIP", label: "Dip Chip", description: "Card reader", enabled: true },
+  { id: "MANUAL_ENTRY", label: "Manual Entry", description: "Controlled form", enabled: true }
 ];
 
 const statusFilters = ["CREATED", "IDENTITY_CAPTURED", "DOPA_VERIFIED", "DOPA_REJECTED", "APPROVED", "REJECTED"];
@@ -31,6 +31,7 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
   const [selectedMethod, setSelectedMethod] = useState<MethodId>("DIP_CHIP");
   const [sessionMethodFilter, setSessionMethodFilter] = useState<"ALL" | MethodId>("ALL");
   const [sessionStatusFilter, setSessionStatusFilter] = useState("ALL");
+  const [methodCatalog, setMethodCatalog] = useState<VerificationMethodOption[]>(defaultMethods);
   const [sessions, setSessions] = useState<VerificationSession[]>([]);
   const [activeSession, setActiveSession] = useState<VerificationSession | null>(null);
   const [error, setError] = useState("");
@@ -40,6 +41,37 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
   const activeWorkflowIndex = workflowIndex(activeSession?.status);
   const operatorInitials = (operator.displayName || operator.username).slice(0, 2).toUpperCase();
   const navigationItems = operator.role === "ADMIN" ? ["Verification", "Transactions", "Account", "Audit", "Operators"] : ["Verification", "Transactions", "Account"];
+  const methods = methodCatalog.filter((method) => method.enabled);
+  const methodLabel = (method: MethodId) => methods.find((item) => item.id === method)?.label ?? method;
+
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadMethodCatalog() {
+      try {
+        const response = await getJson<VerificationMethodOption[]>("/api/verification/methods", {
+          accessToken: operator.accessToken
+        });
+
+        if (!cancelled) {
+          const enabledMethods = (response.data ?? defaultMethods).filter((method) => method.enabled);
+          setMethodCatalog(enabledMethods.length > 0 ? response.data ?? defaultMethods : defaultMethods);
+          setSelectedMethod((current) => (enabledMethods.some((method) => method.id === current) ? current : enabledMethods[0]?.id ?? "DIP_CHIP"));
+        }
+      } catch (err) {
+        if (!cancelled) {
+          handleApiError(err, "Unable to load verification methods.");
+        }
+      }
+    }
+
+    void loadMethodCatalog();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [operator.accessToken]);
 
   useEffect(() => {
     let cancelled = false;
@@ -282,7 +314,7 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
                     >
                       <span className="grid gap-1">
                         <span className="font-semibold text-slate-950">{method.label}</span>
-                        <span className="text-sm text-slate-500">{method.detail}</span>
+                        <span className="text-sm text-slate-500">{method.description}</span>
                       </span>
                       <span className={selected ? "grid size-5 place-items-center rounded-full bg-teal-600" : "size-5 rounded-full border border-slate-300"}>
                         {selected ? <span className="size-2 rounded-full bg-white" /> : null}
@@ -602,9 +634,6 @@ function formatDateTime(value?: string | null) {
   }
 
   return new Date(value).toLocaleString();
-}
-function methodLabel(method: MethodId) {
-  return methods.find((item) => item.id === method)?.label ?? method;
 }
 
 function statusClassName(status: string) {

@@ -1,5 +1,11 @@
 export type MethodId = "DIP_CHIP" | "MANUAL_ENTRY";
 
+export type VerificationMethodOption = {
+  id: MethodId;
+  label: string;
+  description: string;
+  enabled: boolean;
+};
 export type SessionOperator = {
   operatorId: string;
   username: string;
