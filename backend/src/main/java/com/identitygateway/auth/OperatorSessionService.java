@@ -53,6 +53,13 @@ public class OperatorSessionService {
     }
 
     @Transactional
+    public void revokeActiveSessions(OperatorUser operator) {
+        Instant now = clock.instant();
+        operatorSessionRepository.findByOperatorIdAndRevokedAtIsNull(operator.getId()).stream()
+                .filter(session -> session.isActive(now))
+                .forEach(session -> session.revoke(now));
+    }
+    @Transactional
     public void revoke(String accessToken) {
         Instant now = clock.instant();
         operatorSessionRepository.findByTokenHash(tokenHashingService.hash(accessToken))

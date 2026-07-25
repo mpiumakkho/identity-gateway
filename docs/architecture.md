@@ -8,7 +8,7 @@ The backend exposes REST APIs under `/api`. Controllers stay thin and delegate b
 
 Current backend modules:
 
-- `auth`: operator login, user repository, BCrypt password verification
+- `auth`: operator login, user repository, BCrypt password verification, and admin operator management
 - `verification`: verification method catalog, persisted session creation, transaction inquiry, enriched transaction detail, manual identity capture, Dip Chip payload intake, and decision closeout
 - `dopa`: citizen registry validation, result persistence, and audit-safe response mapping
 - `audit`: persisted operator and transaction audit timeline
@@ -44,6 +44,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 8. Audit flow: operator and transaction event timeline. Done with persisted audit events and a transaction timeline view.
 9. Transaction inquiry flow: method and status filtering for persisted verification sessions. Done with backend query filters and console controls.
 10. Transaction detail flow: masked identity, DOPA, and closeout summaries. Done with enriched detail responses and console summary sections.
+11. Operator management flow: admin operator listing, account creation, password changes, and disabling. Done with BCrypt hashing, session revocation, and audit events.
 
 ## Data Handling
 

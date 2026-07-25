@@ -87,6 +87,63 @@ Response data:
 
 Missing, expired, revoked, or invalid tokens return `401` with code `AUTHENTICATION_REQUIRED`.
 
+## Operator Management
+
+All operator management endpoints require an authenticated `ADMIN` operator. Passwords are accepted only in request bodies and are never returned. Password changes and disabled accounts revoke active sessions for the affected operator.
+
+### `GET /operators`
+
+Returns operator accounts ordered by newest first.
+
+Response data:
+
+```json
+[
+  {
+    "operatorId": "uuid",
+    "username": "operator",
+    "displayName": "Operations User",
+    "role": "OPERATIONS",
+    "enabled": true,
+    "createdAt": "2026-07-25T00:00:00Z",
+    "updatedAt": "2026-07-25T00:00:00Z",
+    "disabledAt": null
+  }
+]
+```
+
+### `POST /operators`
+
+Creates an enabled operator account with a BCrypt password hash.
+
+Request:
+
+```json
+{
+  "username": "operator",
+  "password": "very-secret-123",
+  "displayName": "Operations User",
+  "role": "OPERATIONS"
+}
+```
+
+Duplicate usernames return `400` with code `BAD_REQUEST`.
+
+### `PUT /operators/{operatorId}/password`
+
+Changes an operator password and revokes that operator's active sessions.
+
+Request:
+
+```json
+{
+  "password": "new-secret-123"
+}
+```
+
+### `PUT /operators/{operatorId}/disabled`
+
+Disables an operator account and revokes active sessions. Admin operators cannot disable their own account. Unknown IDs return `404` with code `NOT_FOUND`.
 ## Verification
 
 ### `GET /verification/methods`

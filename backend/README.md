@@ -69,4 +69,4 @@ BOOTSTRAP_OPERATOR_ROLE=OPERATIONS
 
 ## Security Notes
 
-Passwords are verified with Spring Security `PasswordEncoder` backed by BCrypt. Login returns an opaque bearer token while PostgreSQL stores only the token hash and expiry. Application endpoints reject missing, expired, revoked, or invalid tokens with `AUTHENTICATION_REQUIRED`. Do not commit passwords, salts, signing keys, API tokens, or partner credentials to the repository.
+Passwords are verified with Spring Security `PasswordEncoder` backed by BCrypt. Admin operator management endpoints also hash new passwords with BCrypt and revoke active sessions after password changes or account disabling. Login returns an opaque bearer token while PostgreSQL stores only the token hash and expiry. Application endpoints reject missing, expired, revoked, or invalid tokens with `AUTHENTICATION_REQUIRED`. Do not commit passwords, salts, signing keys, API tokens, or partner credentials to the repository.

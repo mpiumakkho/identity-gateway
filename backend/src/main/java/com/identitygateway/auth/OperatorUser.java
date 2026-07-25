@@ -6,6 +6,7 @@ import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 import java.time.Instant;
@@ -38,6 +39,12 @@ public class OperatorUser {
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
 
+    @Column(name = "updated_at", nullable = false)
+    private Instant updatedAt;
+
+    @Column(name = "disabled_at")
+    private Instant disabledAt;
+
     protected OperatorUser() {
     }
 
@@ -58,9 +65,18 @@ public class OperatorUser {
         if (id == null) {
             id = UUID.randomUUID();
         }
+        Instant now = Instant.now();
         if (createdAt == null) {
-            createdAt = Instant.now();
+            createdAt = now;
         }
+        if (updatedAt == null) {
+            updatedAt = now;
+        }
+    }
+
+    @PreUpdate
+    void preUpdate() {
+        updatedAt = Instant.now();
     }
 
     public UUID getId() {
@@ -75,6 +91,10 @@ public class OperatorUser {
         return passwordHash;
     }
 
+    public void changePasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
+
     public String getDisplayName() {
         return displayName;
     }
@@ -87,7 +107,25 @@ public class OperatorUser {
         return enabled;
     }
 
+    public void disable(Instant disabledAt) {
+        this.enabled = false;
+        this.disabledAt = disabledAt;
+    }
+
+    public void enable() {
+        this.enabled = true;
+        this.disabledAt = null;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public Instant getDisabledAt() {
+        return disabledAt;
     }
 }
