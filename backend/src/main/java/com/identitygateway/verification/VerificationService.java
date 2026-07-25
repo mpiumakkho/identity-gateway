@@ -14,7 +14,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,6 +23,7 @@ public class VerificationService {
     private static final String SESSION_NOT_FOUND_MESSAGE = "Verification session not found.";
     private static final String SESSION_CLOSED_MESSAGE = "Verification session is already closed.";
 
+    private final VerificationMethodRepository verificationMethodRepository;
     private final VerificationSessionRepository verificationSessionRepository;
     private final ManualIdentityEntryRepository manualIdentityEntryRepository;
     private final DipChipIdentityEntryRepository dipChipIdentityEntryRepository;
@@ -33,6 +33,7 @@ public class VerificationService {
     private final AuditService auditService;
 
     public VerificationService(
+            VerificationMethodRepository verificationMethodRepository,
             VerificationSessionRepository verificationSessionRepository,
             ManualIdentityEntryRepository manualIdentityEntryRepository,
             DipChipIdentityEntryRepository dipChipIdentityEntryRepository,
@@ -41,6 +42,7 @@ public class VerificationService {
             OperatorUserRepository operatorUserRepository,
             AuditService auditService
     ) {
+        this.verificationMethodRepository = verificationMethodRepository;
         this.verificationSessionRepository = verificationSessionRepository;
         this.manualIdentityEntryRepository = manualIdentityEntryRepository;
         this.dipChipIdentityEntryRepository = dipChipIdentityEntryRepository;
@@ -52,8 +54,8 @@ public class VerificationService {
 
     @Transactional(readOnly = true)
     public List<VerificationMethodResponse> methods() {
-        return Arrays.stream(VerificationMethod.values())
-                .map(method -> new VerificationMethodResponse(method.name(), method.label(), method.description(), true))
+        return verificationMethodRepository.findByEnabledTrueOrderBySortOrderAscIdAsc().stream()
+                .map(method -> new VerificationMethodResponse(method.getId(), method.getLabel(), method.getDescription(), method.isEnabled()))
                 .toList();
     }
 
@@ -106,6 +108,7 @@ public class VerificationService {
     @Transactional
     public VerificationSessionResponse startSession(AuthenticatedOperator operator, StartVerificationRequest request) {
         VerificationMethod method = VerificationMethod.from(request.method());
+        requireMethodEnabled(method);
         OperatorUser createdBy = operatorUserRepository.getReferenceById(operator.operatorId());
         VerificationSessionEntity session = verificationSessionRepository.save(VerificationSessionEntity.create(method, createdBy));
         auditService.recordTransactionEvent(
@@ -196,6 +199,12 @@ public class VerificationService {
         );
 
         return toCloseoutResponse(session, closeout);
+    }
+
+    private void requireMethodEnabled(VerificationMethod method) {
+        if (!verificationMethodRepository.existsByIdAndEnabledTrue(method.name())) {
+            throw new IllegalArgumentException("Verification method is disabled: " + method.name());
+        }
     }
 
     private static void requireValidCardDates(DipChipPayloadRequest request) {

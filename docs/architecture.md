@@ -9,7 +9,7 @@ The backend exposes REST APIs under `/api`. Controllers stay thin and delegate b
 Current backend modules:
 
 - `auth`: operator login, user repository, BCrypt password verification, active session controls, self-service password changes, and admin operator management
-- `verification`: verification method catalog, system health, dashboard metrics, persisted session creation, transaction inquiry, enriched transaction detail, manual identity capture, Dip Chip payload intake, and decision closeout
+- `verification`: persisted verification method catalog, system health, dashboard metrics, persisted session creation, transaction inquiry, enriched transaction detail, manual identity capture, Dip Chip payload intake, and decision closeout
 - `dopa`: citizen registry validation, result persistence, validation history, and audit-safe response mapping
 - `audit`: persisted operator, authentication, and transaction audit timeline with admin inquiry
 - `config`: CORS and Spring Security configuration
@@ -51,6 +51,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 15. Operations dashboard flow: aggregate verification transaction metrics by status and intake method. Done with grouped database queries and console summary cards.
 16. DOPA validation history flow: latest validation attempts per transaction. Done with safe attempt responses, transaction-scoped endpoint, and console history list.
 17. System health flow: service and database readiness for operators. Done with a DB-backed health response and console refresh panel.
+18. Persisted method catalog flow: verification method options stored in PostgreSQL and served from the catalog. Done with Flyway seed data, repository-backed catalog responses, and disabled-method enforcement on session creation.
 
 ## Data Handling
 

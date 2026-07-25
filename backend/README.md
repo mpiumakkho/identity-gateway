@@ -57,7 +57,7 @@ BOOTSTRAP_OPERATOR_ROLE=OPERATIONS
 
 - `GET /api/system/health` with service and database readiness
 - `POST /api/auth/login`
-- `GET /api/verification/methods`
+- `GET /api/verification/methods` from the persisted method catalog
 - `GET /api/verification/sessions` with optional `method` and `status` filters
 - `GET /api/verification/sessions/{transactionId}` with masked workflow summaries
 - `POST /api/verification/sessions`

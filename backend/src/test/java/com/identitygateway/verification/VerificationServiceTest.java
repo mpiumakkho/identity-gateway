@@ -37,6 +37,9 @@ import static org.mockito.Mockito.when;
 class VerificationServiceTest {
 
     @Mock
+    private VerificationMethodRepository verificationMethodRepository;
+
+    @Mock
     private VerificationSessionRepository verificationSessionRepository;
 
     @Mock
@@ -62,6 +65,7 @@ class VerificationServiceTest {
     @BeforeEach
     void setUp() {
         verificationService = new VerificationService(
+                verificationMethodRepository,
                 verificationSessionRepository,
                 manualIdentityEntryRepository,
                 dipChipIdentityEntryRepository,
@@ -74,6 +78,11 @@ class VerificationServiceTest {
 
     @Test
     void methodsReturnsConfiguredFlowEntryPoints() {
+        when(verificationMethodRepository.findByEnabledTrueOrderBySortOrderAscIdAsc()).thenReturn(List.of(
+                VerificationMethodEntity.create(VerificationMethod.DIP_CHIP, true, 10),
+                VerificationMethodEntity.create(VerificationMethod.MANUAL_ENTRY, true, 20)
+        ));
+
         List<VerificationMethodResponse> methods = verificationService.methods();
 
         assertThat(methods)
@@ -169,10 +178,13 @@ class VerificationServiceTest {
         assertThat(responses.get(0).validationStatus()).isEqualTo("MATCHED");
         assertThat(responses.get(0).responseCode()).isEqualTo("DOPA-0000");
         assertThat(responses.get(0).consentReference()).isEqualTo("CONSENT-001");
-    }    @Test
+    }
+
+    @Test
     void startSessionPersistsCreatedSessionForOperator() {
         AuthenticatedOperator authenticatedOperator = authenticatedOperator();
         OperatorUser operator = OperatorUser.create("operator", "hash", "Operations User", OperatorRole.OPERATIONS);
+        when(verificationMethodRepository.existsByIdAndEnabledTrue("DIP_CHIP")).thenReturn(true);
         when(operatorUserRepository.getReferenceById(authenticatedOperator.operatorId())).thenReturn(operator);
         when(verificationSessionRepository.save(any(VerificationSessionEntity.class)))
                 .thenAnswer(invocation -> {
@@ -195,6 +207,14 @@ class VerificationServiceTest {
         assertThatThrownBy(() -> verificationService.startSession(authenticatedOperator(), new StartVerificationRequest("VIDEO_CALL")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Unsupported verification method: VIDEO_CALL");
+    }
+    @Test
+    void startSessionRejectsDisabledMethod() {
+        when(verificationMethodRepository.existsByIdAndEnabledTrue("DIP_CHIP")).thenReturn(false);
+
+        assertThatThrownBy(() -> verificationService.startSession(authenticatedOperator(), new StartVerificationRequest("DIP_CHIP")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Verification method is disabled: DIP_CHIP");
     }
 
     @Test
