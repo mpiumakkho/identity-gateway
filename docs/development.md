@@ -6,8 +6,15 @@
 - Maven 3.9+
 - Node.js 22+
 - npm 10+
+- Docker Desktop or another local PostgreSQL runtime
 
 ## First Run
+
+Start PostgreSQL:
+
+```bash
+docker compose up -d postgres
+```
 
 Backend:
 
@@ -41,3 +48,4 @@ Frontend runs at `http://127.0.0.1:7000`. Vite uses `strictPort`, so it will fai
 - Add validation annotations to request DTOs.
 - Keep integration URLs and credentials in environment-specific config.
 - Add tests beside domain logic as the workflow becomes concrete.
+- Build each verification flow independently before connecting it to the next flow.

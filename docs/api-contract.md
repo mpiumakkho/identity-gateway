@@ -2,6 +2,18 @@
 
 Base URL: `/api`
 
+All application responses use this envelope:
+
+```json
+{
+  "status": "success",
+  "code": "OK",
+  "message": "",
+  "data": {},
+  "timestamp": "2026-07-25T00:00:00Z"
+}
+```
+
 ## System
 
 ### `GET /system/health`
@@ -12,9 +24,9 @@ Returns service health for local smoke checks.
 
 ### `POST /auth/login`
 
-Initial placeholder. The endpoint returns `501 Not Implemented` until the authentication strategy is selected.
+Authenticates an operator against a BCrypt password hash stored in PostgreSQL.
 
-Request draft:
+Request:
 
 ```json
 {
@@ -22,6 +34,20 @@ Request draft:
   "password": "secret"
 }
 ```
+
+Response data:
+
+```json
+{
+  "operatorId": "uuid",
+  "username": "operator",
+  "displayName": "Operations User",
+  "role": "OPERATIONS",
+  "authenticatedAt": "2026-07-25T00:00:00Z"
+}
+```
+
+Invalid credentials return `401` with code `INVALID_CREDENTIALS`.
 
 ## Verification
 
@@ -31,7 +57,7 @@ Returns enabled verification intake methods.
 
 ### `POST /verification/sessions`
 
-Creates a new verification transaction session.
+Creates and persists a new verification transaction session.
 
 Request:
 

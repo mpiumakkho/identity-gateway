@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: identity-gateway-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: identity_gateway
+      POSTGRES_USER: identity_gateway
+      POSTGRES_PASSWORD: identity_gateway
+    volumes:
+      - identity_gateway_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U identity_gateway -d identity_gateway"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  identity_gateway_pgdata:

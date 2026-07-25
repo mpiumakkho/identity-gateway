@@ -4,25 +4,48 @@ Identity Gateway is split into two independently runnable applications.
 
 ## Backend
 
-The backend exposes REST APIs under `/api`. Controllers should stay thin and delegate business rules to service classes as the domain grows.
+The backend exposes REST APIs under `/api`. Controllers stay thin and delegate business rules to service classes.
+
+Current backend modules:
+
+- `auth`: operator login, user repository, BCrypt password verification
+- `verification`: verification method catalog and persisted session creation
+- `config`: CORS and Spring Security configuration
+- `common`: shared API response and error handling
 
 Planned backend modules:
 
-- `auth`: authentication and session/token strategy
-- `verification`: verification workflow orchestration
 - `identity`: citizen identity models and validation
+- `dopa`: DOPA request, response, and audit-safe result mapping
+- `dipchip`: citizen-card reader payload intake and normalization
 - `transaction`: transaction persistence and status history
-- `audit`: audit events and operator activity logs
-- `config`: application configuration, CORS, security, and integration clients
-- `common`: shared API response and error handling
+- `audit`: operator activity logs and interface logs
+
+## Database
+
+Runtime uses PostgreSQL. Schema changes are managed by Flyway migrations in `backend/src/main/resources/db/migration`.
+
+Automated tests use the `test` profile with H2 so unit and slice tests do not require a local PostgreSQL server.
 
 ## Frontend
 
-The frontend is a React Vite app for staff operations. Feature code should live under `src/features`, shared API helpers under `src/api`, and shared styling under `src/styles`.
+The frontend is a React Vite app for staff operations. Styling uses Tailwind CSS with Preline UI components. Feature code lives under `src/features`, shared API helpers under `src/api`, and shared styling under `src/styles`.
+
+Preline is loaded with a dynamic import after React mounts so the main application bundle stays lighter.
+
+## Flow Roadmap
+
+1. Foundation flow: PostgreSQL, Flyway, BCrypt auth foundation, verification session persistence.
+2. Login flow: operator login, session/token strategy, protected app shell.
+3. Method flow: select `DIP_CHIP` or `MANUAL_ENTRY` and create a transaction session.
+4. Manual identity flow: controlled citizen-data entry and validation.
+5. Dip Chip flow: card-reader payload capture and normalization.
+6. DOPA flow: external validation request, response mapping, retry/error states.
+7. Summary flow: verification decision, transaction closeout, audit event capture.
 
 ## Data Handling
 
-Do not store verification transaction state in static in-memory fields. Use a database, cache, or explicit session store once persistence is added.
+Do not store verification transaction state in static in-memory fields. Persist workflow state in PostgreSQL and keep short-lived client state in the frontend only when it can be safely recreated.
 
 ## Secrets
 
