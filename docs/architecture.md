@@ -56,6 +56,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 22. Dip Chip normalization flow: reader payload normalization before persistence. Done with a dedicated module, normalized payload mapping, card-date consistency checks, and focused unit coverage.
 23. Manual identity normalization flow: manual-entry identity normalization before persistence. Done with shared text normalization, normalized identity mapping, and focused unit coverage.
 24. Validation error detail flow: field-level validation details in API error responses. Done with an envelope-level errors field and MVC coverage.
+25. Frontend validation error handling flow: field-level validation details consumed by the React API client. Done with typed error payloads, formatted operator messages, and envelope consistency for authentication failures.
 
 ## Data Handling
 

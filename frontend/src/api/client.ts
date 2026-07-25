@@ -1,8 +1,14 @@
+export type ApiFieldError = {
+  field: string;
+  message: string;
+};
+
 export type ApiResponse<T> = {
   status: "success" | "error";
   code: string;
   message: string;
   data: T | null;
+  errors: ApiFieldError[] | null;
   timestamp: string;
 };
 
@@ -16,12 +22,14 @@ type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
+  readonly errors: ApiFieldError[];
 
-  constructor(status: number, code: string, message: string) {
-    super(message);
+  constructor(status: number, code: string, message: string, errors: ApiFieldError[] = []) {
+    super(formatApiErrorMessage(message, errors));
     this.name = "ApiError";
     this.status = status;
     this.code = code;
+    this.errors = errors;
   }
 }
 
@@ -61,8 +69,55 @@ async function requestJson<T>(path: string, method: HttpMethod, options: Request
   const body = (await response.json()) as ApiResponse<T>;
 
   if (!response.ok) {
-    throw new ApiError(response.status, body.code, body.message || `Request failed with status ${response.status}`);
+    throw new ApiError(
+      response.status,
+      body.code,
+      body.message || `Request failed with status ${response.status}`,
+      normalizeFieldErrors(body.errors)
+    );
   }
 
   return body;
+}
+
+function normalizeFieldErrors(errors: ApiResponse<unknown>["errors"] | unknown): ApiFieldError[] {
+  if (!Array.isArray(errors)) {
+    return [];
+  }
+
+  return errors.flatMap((error) => {
+    if (!isApiFieldError(error)) {
+      return [];
+    }
+
+    return [{ field: error.field, message: error.message }];
+  });
+}
+
+function isApiFieldError(error: unknown): error is ApiFieldError {
+  return Boolean(
+    error
+    && typeof error === "object"
+    && "field" in error
+    && "message" in error
+    && typeof error.field === "string"
+    && typeof error.message === "string"
+  );
+}
+
+function formatApiErrorMessage(message: string, errors: ApiFieldError[]) {
+  if (errors.length === 0) {
+    return message;
+  }
+
+  return errors
+    .map((error) => `${formatFieldName(error.field)}: ${error.message}`)
+    .join("; ");
+}
+
+function formatFieldName(field: string) {
+  return field
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/^./, (value) => value.toUpperCase());
 }

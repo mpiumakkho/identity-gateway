@@ -24,6 +24,6 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         response.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        response.getWriter().write("{\"status\":\"error\",\"code\":\"AUTHENTICATION_REQUIRED\",\"message\":\"Authentication required.\",\"data\":null,\"timestamp\":\"" + Instant.now() + "\"}");
+        response.getWriter().write("{\"status\":\"error\",\"code\":\"AUTHENTICATION_REQUIRED\",\"message\":\"Authentication required.\",\"data\":null,\"errors\":null,\"timestamp\":\"" + Instant.now() + "\"}");
     }
 }
