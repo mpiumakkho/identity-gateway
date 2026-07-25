@@ -73,6 +73,37 @@ Response data:
 }
 ```
 
+### `GET /auth/sessions`
+
+Returns active bearer-token sessions for the current operator. The response marks the session matching the current bearer token.
+
+Response data:
+
+```json
+[
+  {
+    "sessionId": "uuid",
+    "current": true,
+    "createdAt": "2026-07-25T00:00:00Z",
+    "expiresAt": "2026-07-25T08:00:00Z"
+  }
+]
+```
+
+### `DELETE /auth/sessions/{sessionId}`
+
+Revokes one active session belonging to the current operator. The current bearer-token session cannot be revoked through this endpoint; use logout for the current session.
+
+Response data:
+
+```json
+{
+  "revoked": true
+}
+```
+
+Unknown session IDs return `404` with code `NOT_FOUND`.
+
 ### `PUT /auth/password`
 
 Changes the current operator password after verifying the current password. The current bearer token remains active and other active sessions for the same operator are revoked.

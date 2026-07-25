@@ -11,7 +11,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -77,6 +79,39 @@ class AuthServiceTest {
     }
 
     @Test
+    void activeSessionsReturnsCurrentOperatorSessions() {
+        OperatorUser user = operator("operator");
+        AuthenticatedOperator operator = AuthenticatedOperator.from(user, Instant.parse("2026-07-25T08:00:00Z"));
+        OperatorSessionResponse session = new OperatorSessionResponse(
+                UUID.randomUUID(),
+                true,
+                Instant.parse("2026-07-25T00:00:00Z"),
+                Instant.parse("2026-07-25T08:00:00Z")
+        );
+
+        when(operatorUserRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(operatorSessionService.activeSessions(user, "current-token")).thenReturn(List.of(session));
+
+        List<OperatorSessionResponse> sessions = authService.activeSessions(operator, "current-token");
+
+        assertThat(sessions).containsExactly(session);
+    }
+
+    @Test
+    void revokeSessionRevokesCurrentOperatorSession() {
+        OperatorUser user = operator("operator");
+        AuthenticatedOperator operator = AuthenticatedOperator.from(user, Instant.parse("2026-07-25T08:00:00Z"));
+        UUID sessionId = UUID.randomUUID();
+        when(operatorUserRepository.findById(user.getId())).thenReturn(Optional.of(user));
+        when(operatorSessionService.revokeSession(user, sessionId, "current-token")).thenReturn(new SessionRevocationResponse(true));
+
+        SessionRevocationResponse response = authService.revokeSession(operator, sessionId, "current-token");
+
+        assertThat(response.revoked()).isTrue();
+        verify(operatorSessionService).revokeSession(user, sessionId, "current-token");
+    }
+
+    @Test
     void changeOwnPasswordVerifiesCurrentPasswordAndKeepsCurrentSession() {
         String passwordHash = passwordEncoder.encode("current-password");
         OperatorUser user = OperatorUser.create("operator", passwordHash, "Operations User", OperatorRole.OPERATIONS);
@@ -114,5 +149,11 @@ class AuthServiceTest {
                 .hasMessage("Invalid username or password.");
 
         verify(operatorSessionService, never()).revokeActiveSessionsExcept(user, "current-token");
+    }
+
+    private static OperatorUser operator(String username) {
+        OperatorUser user = OperatorUser.create(username, "hash", "Operations User", OperatorRole.OPERATIONS);
+        user.prePersist();
+        return user;
     }
 }

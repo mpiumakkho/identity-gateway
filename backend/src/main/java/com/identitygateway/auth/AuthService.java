@@ -8,7 +8,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class AuthService {
@@ -77,11 +79,26 @@ public class AuthService {
         return CurrentOperatorResponse.from(operator);
     }
 
+    @Transactional(readOnly = true)
+    public List<OperatorSessionResponse> activeSessions(AuthenticatedOperator operator, String accessToken) {
+        return operatorSessionService.activeSessions(requireEnabledOperator(operator), accessToken);
+    }
+
+    @Transactional
+    public SessionRevocationResponse revokeSession(AuthenticatedOperator operator, UUID sessionId, String accessToken) {
+        SessionRevocationResponse response = operatorSessionService.revokeSession(requireEnabledOperator(operator), sessionId, accessToken);
+        auditService.recordOperatorEvent(
+                AuditEventType.AUTH_SESSION_REVOKED,
+                operator.operatorId(),
+                "Operator session revoked.",
+                AuditService.metadata("sessionId", sessionId.toString(), "username", operator.username())
+        );
+        return response;
+    }
+
     @Transactional
     public PasswordChangeResponse changeOwnPassword(AuthenticatedOperator operator, String accessToken, ChangeOwnPasswordRequest request) {
-        OperatorUser user = operatorUserRepository.findById(operator.operatorId())
-                .filter(OperatorUser::isEnabled)
-                .orElseThrow(AuthenticationFailedException::new);
+        OperatorUser user = requireEnabledOperator(operator);
 
         if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
             throw new AuthenticationFailedException();
@@ -112,5 +129,11 @@ public class AuthService {
                 "Operator logged out.",
                 AuditService.metadata("username", operator.username())
         );
+    }
+
+    private OperatorUser requireEnabledOperator(AuthenticatedOperator operator) {
+        return operatorUserRepository.findById(operator.operatorId())
+                .filter(OperatorUser::isEnabled)
+                .orElseThrow(AuthenticationFailedException::new);
     }
 }

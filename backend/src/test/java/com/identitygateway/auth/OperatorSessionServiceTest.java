@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -93,6 +94,49 @@ class OperatorSessionServiceTest {
         assertThat(otherSession.getRevokedAt()).isEqualTo(Instant.parse("2026-07-25T00:00:00Z"));
     }
 
+    @Test
+    void activeSessionsMarksCurrentSession() {
+        OperatorSessionService service = service(Duration.ofHours(8));
+        OperatorUser operator = OperatorUser.create("operator", "hash", "Operations User", OperatorRole.OPERATIONS);
+        operator.prePersist();
+        OperatorSession currentSession = OperatorSession.create(operator, tokenHashingService.hash("current-token"), Instant.parse("2026-07-25T01:00:00Z"));
+        OperatorSession otherSession = OperatorSession.create(operator, tokenHashingService.hash("other-token"), Instant.parse("2026-07-25T01:00:00Z"));
+        when(operatorSessionRepository.findByOperatorIdAndRevokedAtIsNull(operator.getId())).thenReturn(List.of(currentSession, otherSession));
+
+        List<OperatorSessionResponse> responses = service.activeSessions(operator, "current-token");
+
+        assertThat(responses).hasSize(2);
+        assertThat(responses).extracting(OperatorSessionResponse::current).containsExactly(true, false);
+    }
+
+    @Test
+    void revokeSessionRejectsCurrentSession() {
+        OperatorSessionService service = service(Duration.ofHours(8));
+        OperatorUser operator = OperatorUser.create("operator", "hash", "Operations User", OperatorRole.OPERATIONS);
+        operator.prePersist();
+        OperatorSession currentSession = OperatorSession.create(operator, tokenHashingService.hash("current-token"), Instant.parse("2026-07-25T01:00:00Z"));
+        currentSession.prePersist();
+        when(operatorSessionRepository.findById(currentSession.getId())).thenReturn(Optional.of(currentSession));
+
+        assertThatThrownBy(() -> service.revokeSession(operator, currentSession.getId(), "current-token"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Current session cannot be revoked from active sessions.");
+    }
+
+    @Test
+    void revokeSessionRevokesOwnedSession() {
+        OperatorSessionService service = service(Duration.ofHours(8));
+        OperatorUser operator = OperatorUser.create("operator", "hash", "Operations User", OperatorRole.OPERATIONS);
+        operator.prePersist();
+        OperatorSession otherSession = OperatorSession.create(operator, tokenHashingService.hash("other-token"), Instant.parse("2026-07-25T01:00:00Z"));
+        otherSession.prePersist();
+        when(operatorSessionRepository.findById(otherSession.getId())).thenReturn(Optional.of(otherSession));
+
+        SessionRevocationResponse response = service.revokeSession(operator, otherSession.getId(), "current-token");
+
+        assertThat(response.revoked()).isTrue();
+        assertThat(otherSession.getRevokedAt()).isEqualTo(Instant.parse("2026-07-25T00:00:00Z"));
+    }
     private OperatorSessionService service(Duration sessionTtl) {
         return new OperatorSessionService(
                 operatorSessionRepository,

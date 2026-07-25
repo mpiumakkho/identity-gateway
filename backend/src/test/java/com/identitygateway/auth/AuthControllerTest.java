@@ -13,6 +13,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -20,6 +21,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -69,15 +72,47 @@ class AuthControllerTest {
     }
 
     @Test
-    void changePasswordReturnsPasswordChangeResult() throws Exception {
-        AuthenticatedOperator operator = new AuthenticatedOperator(
-                UUID.fromString("9e04e2eb-d74a-4d55-987c-f38660aa3060"),
-                "operator",
-                "Operations User",
-                OperatorRole.OPERATIONS,
+    void sessionsReturnsActiveOperatorSessions() throws Exception {
+        AuthenticatedOperator operator = authenticatedOperator();
+        UsernamePasswordAuthenticationToken authenticatedRequest = authenticatedRequest(operator);
+        UUID sessionId = UUID.fromString("4ccf1d23-1be5-4356-af6f-cb7adf0b9426");
+
+        when(bearerTokenResolver.resolve("Bearer current-token")).thenReturn(Optional.of("current-token"));
+        when(authService.activeSessions(eq(operator), eq("current-token"))).thenReturn(List.of(new OperatorSessionResponse(
+                sessionId,
+                true,
+                Instant.parse("2026-07-25T00:00:00Z"),
                 Instant.parse("2026-07-25T08:00:00Z")
-        );
-        UsernamePasswordAuthenticationToken authenticatedRequest = new UsernamePasswordAuthenticationToken(operator, null, operator.authorities());
+        )));
+
+        mockMvc.perform(get("/api/auth/sessions")
+                        .with(authentication(authenticatedRequest))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer current-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].sessionId").value("4ccf1d23-1be5-4356-af6f-cb7adf0b9426"))
+                .andExpect(jsonPath("$.data[0].current").value(true));
+    }
+
+    @Test
+    void revokeSessionReturnsRevocationResult() throws Exception {
+        AuthenticatedOperator operator = authenticatedOperator();
+        UsernamePasswordAuthenticationToken authenticatedRequest = authenticatedRequest(operator);
+        UUID sessionId = UUID.fromString("4ccf1d23-1be5-4356-af6f-cb7adf0b9426");
+
+        when(bearerTokenResolver.resolve("Bearer current-token")).thenReturn(Optional.of("current-token"));
+        when(authService.revokeSession(eq(operator), eq(sessionId), eq("current-token"))).thenReturn(new SessionRevocationResponse(true));
+
+        mockMvc.perform(delete("/api/auth/sessions/{sessionId}", sessionId)
+                        .with(authentication(authenticatedRequest))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer current-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.revoked").value(true));
+    }
+
+    @Test
+    void changePasswordReturnsPasswordChangeResult() throws Exception {
+        AuthenticatedOperator operator = authenticatedOperator();
+        UsernamePasswordAuthenticationToken authenticatedRequest = authenticatedRequest(operator);
 
         when(bearerTokenResolver.resolve("Bearer current-token")).thenReturn(Optional.of("current-token"));
         when(authService.changeOwnPassword(eq(operator), eq("current-token"), any(ChangeOwnPasswordRequest.class)))
@@ -91,5 +126,19 @@ class AuthControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.data.passwordChanged").value(true));
+    }
+
+    private static UsernamePasswordAuthenticationToken authenticatedRequest(AuthenticatedOperator operator) {
+        return new UsernamePasswordAuthenticationToken(operator, null, operator.authorities());
+    }
+
+    private static AuthenticatedOperator authenticatedOperator() {
+        return new AuthenticatedOperator(
+                UUID.fromString("9e04e2eb-d74a-4d55-987c-f38660aa3060"),
+                "operator",
+                "Operations User",
+                OperatorRole.OPERATIONS,
+                Instant.parse("2026-07-25T08:00:00Z")
+        );
     }
 }

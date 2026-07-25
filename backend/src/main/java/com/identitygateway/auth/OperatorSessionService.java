@@ -1,5 +1,6 @@
 package com.identitygateway.auth;
 
+import com.identitygateway.common.error.ResourceNotFoundException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -7,7 +8,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 public class OperatorSessionService {
@@ -50,6 +53,35 @@ public class OperatorSessionService {
                 .filter(session -> session.isActive(now))
                 .map(this::toAuthenticatedOperator)
                 .filter(operator -> operator != null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<OperatorSessionResponse> activeSessions(OperatorUser operator, String activeAccessToken) {
+        Instant now = clock.instant();
+        String activeTokenHash = tokenHashingService.hash(activeAccessToken);
+        return operatorSessionRepository.findByOperatorIdAndRevokedAtIsNull(operator.getId()).stream()
+                .filter(session -> session.isActive(now))
+                .map(session -> OperatorSessionResponse.from(session, activeTokenHash))
+                .toList();
+    }
+
+    @Transactional
+    public SessionRevocationResponse revokeSession(OperatorUser operator, UUID sessionId, String activeAccessToken) {
+        String activeTokenHash = tokenHashingService.hash(activeAccessToken);
+        OperatorSession session = operatorSessionRepository.findById(sessionId)
+                .filter(candidate -> candidate.getOperator().getId().equals(operator.getId()))
+                .orElseThrow(() -> new ResourceNotFoundException("Operator session not found."));
+
+        if (session.getTokenHash().equals(activeTokenHash)) {
+            throw new IllegalArgumentException("Current session cannot be revoked from active sessions.");
+        }
+
+        Instant now = clock.instant();
+        if (session.isActive(now)) {
+            session.revoke(now);
+        }
+
+        return new SessionRevocationResponse(true);
     }
 
     @Transactional

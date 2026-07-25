@@ -11,7 +11,7 @@ type RequestOptions = {
   payload?: unknown;
 };
 
-type HttpMethod = "GET" | "POST" | "PUT";
+type HttpMethod = "GET" | "POST" | "PUT" | "DELETE";
 
 export class ApiError extends Error {
   readonly status: number;
@@ -35,6 +35,10 @@ export async function postJson<T>(path: string, payload?: unknown, options: Requ
 
 export async function putJson<T>(path: string, payload?: unknown, options: RequestOptions = {}): Promise<ApiResponse<T>> {
   return requestJson<T>(path, "PUT", { ...options, payload });
+}
+
+export async function deleteJson<T>(path: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
+  return requestJson<T>(path, "DELETE", options);
 }
 
 async function requestJson<T>(path: string, method: HttpMethod, options: RequestOptions): Promise<ApiResponse<T>> {
