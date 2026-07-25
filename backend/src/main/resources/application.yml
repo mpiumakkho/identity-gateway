@@ -33,5 +33,14 @@ management:
       enabled: true
 
 app:
+  auth:
+    session-ttl: PT8H
+  bootstrap:
+    operator:
+      enabled: ${BOOTSTRAP_OPERATOR_ENABLED:false}
+      username: ${BOOTSTRAP_OPERATOR_USERNAME:}
+      password: ${BOOTSTRAP_OPERATOR_PASSWORD:}
+      display-name: ${BOOTSTRAP_OPERATOR_DISPLAY_NAME:Operations User}
+      role: ${BOOTSTRAP_OPERATOR_ROLE:OPERATIONS}
   cors:
     allowed-origins: http://127.0.0.1:7000,http://localhost:7000

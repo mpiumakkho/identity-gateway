@@ -8,6 +8,8 @@ public record LoginResponse(
         String username,
         String displayName,
         OperatorRole role,
-        Instant authenticatedAt
+        Instant authenticatedAt,
+        String accessToken,
+        Instant expiresAt
 ) {
 }

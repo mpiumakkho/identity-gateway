@@ -17,6 +17,10 @@ The dev server runs on `http://127.0.0.1:7000` and proxies `/api` to the backend
 npm run build
 ```
 
+## Login Flow
+
+The app starts at the operator login screen. A successful login stores the issued bearer token in `sessionStorage` for the current browser tab and clears it on sign out or expiry.
+
 ## Notes
 
 Vite uses `strictPort`, so development fails fast if port 7000 is already occupied.

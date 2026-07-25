@@ -9,10 +9,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.Instant;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -22,21 +24,27 @@ class AuthServiceTest {
     @Mock
     private OperatorUserRepository operatorUserRepository;
 
+    @Mock
+    private OperatorSessionService operatorSessionService;
+
     private PasswordEncoder passwordEncoder;
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
         passwordEncoder = new BCryptPasswordEncoder();
-        authService = new AuthService(operatorUserRepository, passwordEncoder);
+        authService = new AuthService(operatorUserRepository, passwordEncoder, operatorSessionService);
     }
 
     @Test
-    void loginAcceptsBcryptPasswordHash() {
+    void loginAcceptsBcryptPasswordHashAndIssuesSession() {
         String passwordHash = passwordEncoder.encode("s3cret-password");
         OperatorUser user = OperatorUser.create("operator", passwordHash, "Operations User", OperatorRole.OPERATIONS);
         user.prePersist();
+        Instant expiresAt = Instant.parse("2026-07-25T08:00:00Z");
+
         when(operatorUserRepository.findByUsernameIgnoreCase("operator")).thenReturn(Optional.of(user));
+        when(operatorSessionService.createSession(user)).thenReturn(new IssuedOperatorSession("issued-token", expiresAt));
 
         LoginResponse response = authService.login(new LoginRequest("operator", "s3cret-password"));
 
@@ -45,7 +53,10 @@ class AuthServiceTest {
         assertThat(response.displayName()).isEqualTo("Operations User");
         assertThat(response.role()).isEqualTo(OperatorRole.OPERATIONS);
         assertThat(response.authenticatedAt()).isNotNull();
+        assertThat(response.accessToken()).isEqualTo("issued-token");
+        assertThat(response.expiresAt()).isEqualTo(expiresAt);
         verify(operatorUserRepository).findByUsernameIgnoreCase("operator");
+        verify(operatorSessionService).createSession(user);
     }
 
     @Test
@@ -57,5 +68,7 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.login(new LoginRequest("operator", "wrong-password")))
                 .isInstanceOf(AuthenticationFailedException.class)
                 .hasMessage("Invalid username or password.");
+
+        verify(operatorSessionService, never()).createSession(user);
     }
 }

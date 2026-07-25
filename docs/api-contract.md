@@ -24,7 +24,7 @@ Returns service health for local smoke checks.
 
 ### `POST /auth/login`
 
-Authenticates an operator against a BCrypt password hash stored in PostgreSQL.
+Authenticates an operator against a BCrypt password hash stored in PostgreSQL. A successful login returns an opaque bearer token. The raw token is returned only once; the database stores a SHA-256 token hash and expiry timestamp.
 
 Request:
 
@@ -43,7 +43,9 @@ Response data:
   "username": "operator",
   "displayName": "Operations User",
   "role": "OPERATIONS",
-  "authenticatedAt": "2026-07-25T00:00:00Z"
+  "authenticatedAt": "2026-07-25T00:00:00Z",
+  "accessToken": "opaque-token",
+  "expiresAt": "2026-07-25T08:00:00Z"
 }
 ```
 

@@ -10,6 +10,15 @@ Start PostgreSQL first:
 docker compose up -d postgres
 ```
 
+Create a local operator account on first run by setting bootstrap environment variables. Keep bootstrap disabled after the account exists.
+
+```bash
+set BOOTSTRAP_OPERATOR_ENABLED=true
+set BOOTSTRAP_OPERATOR_USERNAME=operator
+set BOOTSTRAP_OPERATOR_PASSWORD=change-this-password
+set BOOTSTRAP_OPERATOR_DISPLAY_NAME=Operations User
+```
+
 Then run the API:
 
 ```bash
@@ -34,6 +43,16 @@ POSTGRES_USER=identity_gateway
 POSTGRES_PASSWORD=identity_gateway
 ```
 
+Authentication settings:
+
+```text
+BOOTSTRAP_OPERATOR_ENABLED=false
+BOOTSTRAP_OPERATOR_USERNAME=operator
+BOOTSTRAP_OPERATOR_PASSWORD=
+BOOTSTRAP_OPERATOR_DISPLAY_NAME=Operations User
+BOOTSTRAP_OPERATOR_ROLE=OPERATIONS
+```
+
 ## Initial Endpoints
 
 - `GET /api/system/health`
@@ -43,4 +62,4 @@ POSTGRES_PASSWORD=identity_gateway
 
 ## Security Notes
 
-Passwords are verified with Spring Security `PasswordEncoder` backed by BCrypt. Do not commit passwords, salts, signing keys, API tokens, or partner credentials to the repository.
+Passwords are verified with Spring Security `PasswordEncoder` backed by BCrypt. Login returns an opaque bearer token while PostgreSQL stores only the token hash and expiry. Do not commit passwords, salts, signing keys, API tokens, or partner credentials to the repository.

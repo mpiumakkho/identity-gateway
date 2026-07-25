@@ -12,13 +12,19 @@ public class AuthService {
 
     private final OperatorUserRepository operatorUserRepository;
     private final PasswordEncoder passwordEncoder;
+    private final OperatorSessionService operatorSessionService;
 
-    public AuthService(OperatorUserRepository operatorUserRepository, PasswordEncoder passwordEncoder) {
+    public AuthService(
+            OperatorUserRepository operatorUserRepository,
+            PasswordEncoder passwordEncoder,
+            OperatorSessionService operatorSessionService
+    ) {
         this.operatorUserRepository = operatorUserRepository;
         this.passwordEncoder = passwordEncoder;
+        this.operatorSessionService = operatorSessionService;
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public LoginResponse login(LoginRequest request) {
         OperatorUser user = operatorUserRepository.findByUsernameIgnoreCase(request.username())
                 .filter(OperatorUser::isEnabled)
@@ -28,12 +34,16 @@ public class AuthService {
             throw new AuthenticationFailedException();
         }
 
+        IssuedOperatorSession session = operatorSessionService.createSession(user);
+
         return new LoginResponse(
                 user.getId(),
                 user.getUsername(),
                 user.getDisplayName(),
                 user.getRole(),
-                Instant.now()
+                Instant.now(),
+                session.accessToken(),
+                session.expiresAt()
         );
     }
 }

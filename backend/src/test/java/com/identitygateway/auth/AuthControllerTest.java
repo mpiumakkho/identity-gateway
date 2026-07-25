@@ -33,13 +33,15 @@ class AuthControllerTest {
     private OperatorUserRepository operatorUserRepository;
 
     @Test
-    void loginReturnsAuthenticatedOperator() throws Exception {
+    void loginReturnsAuthenticatedOperatorSession() throws Exception {
         when(authService.login(any(LoginRequest.class))).thenReturn(new LoginResponse(
                 UUID.fromString("9e04e2eb-d74a-4d55-987c-f38660aa3060"),
                 "operator",
                 "Operations User",
                 OperatorRole.OPERATIONS,
-                Instant.parse("2026-07-25T00:00:00Z")
+                Instant.parse("2026-07-25T00:00:00Z"),
+                "issued-token",
+                Instant.parse("2026-07-25T08:00:00Z")
         ));
 
         mockMvc.perform(post("/api/auth/login")
@@ -51,6 +53,8 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.data.operatorId").value("9e04e2eb-d74a-4d55-987c-f38660aa3060"))
                 .andExpect(jsonPath("$.data.username").value("operator"))
                 .andExpect(jsonPath("$.data.displayName").value("Operations User"))
-                .andExpect(jsonPath("$.data.role").value("OPERATIONS"));
+                .andExpect(jsonPath("$.data.role").value("OPERATIONS"))
+                .andExpect(jsonPath("$.data.accessToken").value("issued-token"))
+                .andExpect(jsonPath("$.data.expiresAt").value("2026-07-25T08:00:00Z"));
     }
 }

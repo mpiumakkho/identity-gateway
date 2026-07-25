@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { postJson } from "../../api/client";
+import type { AuthSession } from "../auth/types";
 
 type MethodId = "DIP_CHIP" | "MANUAL_ENTRY";
 
@@ -17,11 +18,17 @@ const methods: Array<{ id: MethodId; label: string; detail: string }> = [
 
 const workflowSteps = ["Method", "Identity", "DOPA", "Summary"];
 
-export function VerificationShell() {
+type VerificationShellProps = {
+  operator: AuthSession;
+  onSignOut: () => void;
+};
+
+export function VerificationShell({ operator, onSignOut }: VerificationShellProps) {
   const [selectedMethod, setSelectedMethod] = useState<MethodId>("DIP_CHIP");
   const [session, setSession] = useState<VerificationSession | null>(null);
   const [error, setError] = useState("");
   const [isStarting, setIsStarting] = useState(false);
+  const operatorInitials = (operator.displayName || operator.username).slice(0, 2).toUpperCase();
 
   async function startSession() {
     setIsStarting(true);
@@ -92,8 +99,8 @@ export function VerificationShell() {
                 aria-expanded="false"
                 aria-label="Operator menu"
               >
-                <span className="grid size-7 place-items-center rounded-md bg-teal-100 text-xs font-black text-teal-800">OP</span>
-                Operator
+                <span className="grid size-7 place-items-center rounded-md bg-teal-100 text-xs font-black text-teal-800">{operatorInitials}</span>
+                {operator.displayName}
                 <svg className="size-4 text-slate-400 hs-dropdown-open:rotate-180" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path d="m6 9 6 6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
@@ -107,7 +114,7 @@ export function VerificationShell() {
                 <button className="flex w-full items-center rounded-md px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100" type="button">
                   Profile
                 </button>
-                <button className="flex w-full items-center rounded-md px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100" type="button">
+                <button className="flex w-full items-center rounded-md px-3 py-2 text-left text-sm text-slate-700 hover:bg-slate-100" type="button" onClick={onSignOut}>
                   Sign out
                 </button>
               </div>
