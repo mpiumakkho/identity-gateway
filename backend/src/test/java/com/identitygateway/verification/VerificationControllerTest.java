@@ -115,7 +115,9 @@ class VerificationControllerTest {
                         .content("{}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value("error"))
-                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.errors[0].field").value("enabled"))
+                .andExpect(jsonPath("$.errors[0].message", not(blankOrNullString())));
     }
 
     @Test

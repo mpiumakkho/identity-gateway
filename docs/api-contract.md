@@ -10,16 +10,18 @@ All application responses use this envelope:
   "code": "OK",
   "message": "",
   "data": {},
+  "errors": null,
   "timestamp": "2026-07-25T00:00:00Z"
 }
 ```
+
+Validation errors include field-level details in `errors`, while non-validation errors keep `errors` as `null`.
 
 Protected endpoints require an opaque bearer token:
 
 ```http
 Authorization: Bearer <accessToken>
 ```
-
 ## System
 
 ### `GET /system/health`

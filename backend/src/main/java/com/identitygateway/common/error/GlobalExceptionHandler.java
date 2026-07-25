@@ -7,6 +7,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.util.List;
 import java.util.stream.Collectors;
 
 @RestControllerAdvice
@@ -14,13 +15,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Object>> handleValidation(MethodArgumentNotValidException ex) {
-        String message = ex.getBindingResult().getFieldErrors().stream()
-                .map(error -> error.getField() + ": " + error.getDefaultMessage())
+        List<FieldValidationError> errors = ex.getBindingResult().getFieldErrors().stream()
+                .map(error -> new FieldValidationError(error.getField(), error.getDefaultMessage()))
+                .toList();
+        String message = errors.stream()
+                .map(error -> error.field() + ": " + error.message())
                 .collect(Collectors.joining(", "));
 
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error("VALIDATION_ERROR", message));
+                .body(ApiResponse.error("VALIDATION_ERROR", message, errors));
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

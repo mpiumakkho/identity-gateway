@@ -16,6 +16,18 @@ class ApiResponseTest {
         assertThat(response.code()).isEqualTo("OK");
         assertThat(response.message()).isEmpty();
         assertThat(response.data()).containsEntry("service", "identity-gateway");
+        assertThat(response.errors()).isNull();
+        assertThat(response.timestamp()).isNotNull();
+    }
+
+    @Test
+    void errorWrapsFieldErrorsWithoutData() {
+        ApiResponse<Object> response = ApiResponse.error("VALIDATION_ERROR", "method: must not be null", Map.of("field", "method"));
+
+        assertThat(response.status()).isEqualTo("error");
+        assertThat(response.code()).isEqualTo("VALIDATION_ERROR");
+        assertThat(response.data()).isNull();
+        assertThat(response.errors()).isEqualTo(Map.of("field", "method"));
         assertThat(response.timestamp()).isNotNull();
     }
 
@@ -27,6 +39,7 @@ class ApiResponseTest {
         assertThat(response.code()).isEqualTo("VALIDATION_ERROR");
         assertThat(response.message()).isEqualTo("method is required");
         assertThat(response.data()).isNull();
+        assertThat(response.errors()).isNull();
         assertThat(response.timestamp()).isNotNull();
     }
 }
