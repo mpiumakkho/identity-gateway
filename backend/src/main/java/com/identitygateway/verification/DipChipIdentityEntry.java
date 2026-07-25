@@ -1,5 +1,7 @@
 package com.identitygateway.verification;
 
+import com.identitygateway.dipchip.NormalizedDipChipPayload;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -72,22 +74,22 @@ public class DipChipIdentityEntry {
         this.session = session;
     }
 
-    public static DipChipIdentityEntry create(VerificationSessionEntity session, DipChipPayloadRequest request) {
-        return new DipChipIdentityEntry(session).update(request);
+    public static DipChipIdentityEntry create(VerificationSessionEntity session, NormalizedDipChipPayload payload) {
+        return new DipChipIdentityEntry(session).update(payload);
     }
 
-    public DipChipIdentityEntry update(DipChipPayloadRequest request) {
-        this.nationalId = request.nationalId().trim();
-        this.title = request.title().trim();
-        this.firstName = request.firstName().trim();
-        this.lastName = request.lastName().trim();
-        this.dateOfBirth = request.dateOfBirth();
-        this.laserCode = request.laserCode().trim();
-        this.cardIssueDate = request.cardIssueDate();
-        this.cardExpiryDate = request.cardExpiryDate();
-        this.readerName = request.readerName().trim();
-        this.readerSerialNumber = request.readerSerialNumber().trim();
-        this.rawPayload = request.rawPayload().trim();
+    public DipChipIdentityEntry update(NormalizedDipChipPayload payload) {
+        this.nationalId = payload.nationalId();
+        this.title = payload.title();
+        this.firstName = payload.firstName();
+        this.lastName = payload.lastName();
+        this.dateOfBirth = payload.dateOfBirth();
+        this.laserCode = payload.laserCode();
+        this.cardIssueDate = payload.cardIssueDate();
+        this.cardExpiryDate = payload.cardExpiryDate();
+        this.readerName = payload.readerName();
+        this.readerSerialNumber = payload.readerSerialNumber();
+        this.rawPayload = payload.rawPayload();
         return this;
     }
 

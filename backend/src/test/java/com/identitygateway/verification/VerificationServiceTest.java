@@ -7,6 +7,7 @@ import com.identitygateway.auth.OperatorUserRepository;
 import com.identitygateway.common.error.ResourceNotFoundException;
 import com.identitygateway.audit.AuditEventType;
 import com.identitygateway.audit.AuditService;
+import com.identitygateway.dipchip.DipChipPayloadNormalizer;
 import com.identitygateway.dopa.DopaGatewayResult;
 import com.identitygateway.dopa.DopaIdentitySource;
 import com.identitygateway.dopa.DopaValidationAttempt;
@@ -72,6 +73,7 @@ class VerificationServiceTest {
                 dipChipIdentityEntryRepository,
                 verificationDecisionRepository,
                 dopaValidationAttemptRepository,
+                new DipChipPayloadNormalizer(),
                 operatorUserRepository,
                 auditService
         );
@@ -316,7 +318,7 @@ class VerificationServiceTest {
         assertThat(response.transactionId()).isEqualTo(session.getId());
         assertThat(response.sessionStatus()).isEqualTo("IDENTITY_CAPTURED");
         assertThat(response.maskedNationalId()).isEqualTo("123******0121");
-        assertThat(response.readerName()).isEqualTo("ACR39U");
+        assertThat(response.readerName()).isEqualTo("ACR39U Reader");
         assertThat(response.readerSerialNumber()).isEqualTo("RD-001");
         assertThat(response.updatedAt()).isNotNull();
     }
@@ -478,11 +480,12 @@ class VerificationServiceTest {
                 "JT1234567890",
                 LocalDate.parse("2021-02-01"),
                 LocalDate.parse("2031-01-31"),
-                "ACR39U",
-                "RD-001",
+                " ACR39U  Reader ",
+                " rd-001 ",
                 "{\"cid\":\"1234567890121\",\"reader\":\"ACR39U\"}"
         );
     }
+
     private static DipChipPayloadRequest dipChipRequestWithInvalidDates() {
         return new DipChipPayloadRequest(
                 "1234567890121",
@@ -493,8 +496,8 @@ class VerificationServiceTest {
                 "JT1234567890",
                 LocalDate.parse("2031-01-31"),
                 LocalDate.parse("2021-02-01"),
-                "ACR39U",
-                "RD-001",
+                " ACR39U  Reader ",
+                " rd-001 ",
                 "{\"cid\":\"1234567890121\",\"reader\":\"ACR39U\"}"
         );
     }

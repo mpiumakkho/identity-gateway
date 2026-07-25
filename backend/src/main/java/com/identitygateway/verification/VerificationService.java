@@ -7,6 +7,8 @@ import com.identitygateway.audit.AuditEventResponse;
 import com.identitygateway.audit.AuditEventType;
 import com.identitygateway.audit.AuditService;
 import com.identitygateway.common.error.ResourceNotFoundException;
+import com.identitygateway.dipchip.DipChipPayloadNormalizer;
+import com.identitygateway.dipchip.NormalizedDipChipPayload;
 import com.identitygateway.dopa.DopaValidationAttempt;
 import com.identitygateway.dopa.DopaValidationAttemptRepository;
 import com.identitygateway.dopa.DopaValidationHistoryResponse;
@@ -32,6 +34,7 @@ public class VerificationService {
     private final DipChipIdentityEntryRepository dipChipIdentityEntryRepository;
     private final VerificationDecisionRepository verificationDecisionRepository;
     private final DopaValidationAttemptRepository dopaValidationAttemptRepository;
+    private final DipChipPayloadNormalizer dipChipPayloadNormalizer;
     private final OperatorUserRepository operatorUserRepository;
     private final AuditService auditService;
 
@@ -42,6 +45,7 @@ public class VerificationService {
             DipChipIdentityEntryRepository dipChipIdentityEntryRepository,
             VerificationDecisionRepository verificationDecisionRepository,
             DopaValidationAttemptRepository dopaValidationAttemptRepository,
+            DipChipPayloadNormalizer dipChipPayloadNormalizer,
             OperatorUserRepository operatorUserRepository,
             AuditService auditService
     ) {
@@ -51,6 +55,7 @@ public class VerificationService {
         this.dipChipIdentityEntryRepository = dipChipIdentityEntryRepository;
         this.verificationDecisionRepository = verificationDecisionRepository;
         this.dopaValidationAttemptRepository = dopaValidationAttemptRepository;
+        this.dipChipPayloadNormalizer = dipChipPayloadNormalizer;
         this.operatorUserRepository = operatorUserRepository;
         this.auditService = auditService;
     }
@@ -180,11 +185,23 @@ public class VerificationService {
         VerificationSessionEntity session = requireSession(transactionId);
         requireOpen(session);
         requireMethod(session, VerificationMethod.DIP_CHIP, "Dip Chip payload can only be captured for DIP_CHIP sessions.");
-        requireValidCardDates(request);
+        NormalizedDipChipPayload payload = dipChipPayloadNormalizer.normalize(
+                request.nationalId(),
+                request.title(),
+                request.firstName(),
+                request.lastName(),
+                request.dateOfBirth(),
+                request.laserCode(),
+                request.cardIssueDate(),
+                request.cardExpiryDate(),
+                request.readerName(),
+                request.readerSerialNumber(),
+                request.rawPayload()
+        );
 
         DipChipIdentityEntry entry = dipChipIdentityEntryRepository.findBySessionId(session.getId())
-                .map(existing -> existing.update(request))
-                .orElseGet(() -> DipChipIdentityEntry.create(session, request));
+                .map(existing -> existing.update(payload))
+                .orElseGet(() -> DipChipIdentityEntry.create(session, payload));
 
         session.markIdentityCaptured();
         DipChipIdentityEntry savedEntry = dipChipIdentityEntryRepository.save(entry);
@@ -235,15 +252,10 @@ public class VerificationService {
     private VerificationMethodResponse toMethodResponse(VerificationMethodEntity method) {
         return new VerificationMethodResponse(method.getId(), method.getLabel(), method.getDescription(), method.isEnabled());
     }
+
     private void requireMethodEnabled(VerificationMethod method) {
         if (!verificationMethodRepository.existsByIdAndEnabledTrue(method.name())) {
             throw new IllegalArgumentException("Verification method is disabled: " + method.name());
-        }
-    }
-
-    private static void requireValidCardDates(DipChipPayloadRequest request) {
-        if (request.cardExpiryDate().isBefore(request.cardIssueDate())) {
-            throw new IllegalArgumentException("Card expiry date must be on or after the issue date.");
         }
     }
 
