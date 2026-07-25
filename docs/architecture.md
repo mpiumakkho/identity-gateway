@@ -43,7 +43,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 7. Summary flow: verification decision and transaction closeout. Done with persisted operator decision records.
 8. Audit flow: operator and transaction event timeline. Done with persisted audit events and a transaction timeline view.
 9. Transaction inquiry flow: method and status filtering for persisted verification sessions. Done with backend query filters and console controls.
-10. Transaction detail flow: masked identity, DOPA, and closeout summaries. Done with enriched detail responses and console summary sections.
+10. Transaction detail flow: masked identity, DOPA, and closeout summaries. Done with enriched detail responses, direct transaction ID lookup, and console summary sections.
 11. Operator management flow: admin operator listing, account creation, password changes, and disabling. Done with BCrypt hashing, session revocation, audit events, and an admin console panel.
 12. Account security flow: self-service password changes for authenticated operators. Done with current-password verification, BCrypt rehashing, other-session revocation, audit events, and a console panel.
 13. Active sessions flow: current-operator session listing and other-session revocation. Done with token-hash matching, ownership checks, audit events, and account security controls.

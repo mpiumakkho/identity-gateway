@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { ApiError, getJson, postJson } from "../../api/client";
 import { AccountSecurityPanel } from "../auth/AccountSecurityPanel";
 import { AuditInquiryPanel } from "../audit/AuditInquiryPanel";
@@ -20,6 +20,7 @@ const defaultMethods: VerificationMethodOption[] = [
 const statusFilters = ["CREATED", "IDENTITY_CAPTURED", "DOPA_VERIFIED", "DOPA_REJECTED", "APPROVED", "REJECTED"];
 
 const workflowSteps = ["Method", "Identity", "DOPA", "Summary"];
+const transactionIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 type VerificationShellProps = {
   operator: AuthSession;
@@ -38,6 +39,8 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
   const [isStarting, setIsStarting] = useState(false);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const [transactionLookup, setTransactionLookup] = useState("");
+  const [isLookingUpTransaction, setIsLookingUpTransaction] = useState(false);
   const activeWorkflowIndex = workflowIndex(activeSession?.status);
   const operatorInitials = (operator.displayName || operator.username).slice(0, 2).toUpperCase();
   const navigationItems = operator.role === "ADMIN" ? ["Verification", "Transactions", "Account", "Audit", "Operators"] : ["Verification", "Transactions", "Account"];
@@ -181,11 +184,43 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
 
       if (response.data) {
         mergeSession(response.data);
+        return true;
       }
+
+      return false;
     } catch (err) {
       handleApiError(err, "Unable to load verification session.");
+      return false;
     } finally {
       setIsLoadingDetail(false);
+    }
+  }
+
+  async function lookupTransaction(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const transactionId = transactionLookup.trim();
+
+    if (!transactionId) {
+      setError("Transaction ID is required.");
+      return;
+    }
+
+    if (!transactionIdPattern.test(transactionId)) {
+      setError("Transaction ID must be a valid UUID.");
+      return;
+    }
+
+    setIsLookingUpTransaction(true);
+
+    try {
+      const loaded = await openSession(transactionId);
+
+      if (loaded) {
+        setTransactionLookup("");
+      }
+    } finally {
+      setIsLookingUpTransaction(false);
     }
   }
 
@@ -521,38 +556,58 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
                 <h2 id="transactions-title" className="text-xl font-bold text-slate-950">Recent Transactions</h2>
                 <p className="mt-1 text-sm text-slate-500">Latest persisted verification sessions.</p>
               </div>
-              <div className="grid gap-3 sm:grid-cols-[180px_220px_auto] sm:items-end">
-                <label className="grid gap-1 text-xs font-bold uppercase text-slate-500">
-                  Method
-                  <select
-                    className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold normal-case text-slate-700 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
-                    value={sessionMethodFilter}
-                    onChange={(event) => setSessionMethodFilter(event.target.value as "ALL" | MethodId)}
+              <div className="grid gap-3">
+                <form className="grid gap-2 sm:grid-cols-[minmax(240px,360px)_auto] sm:items-end" onSubmit={lookupTransaction}>
+                  <label className="grid gap-1 text-xs font-bold uppercase text-slate-500">
+                    Transaction ID
+                    <input
+                      className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold normal-case text-slate-700 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                      placeholder="00000000-0000-0000-0000-000000000000"
+                      value={transactionLookup}
+                      onChange={(event) => setTransactionLookup(event.target.value)}
+                    />
+                  </label>
+                  <button
+                    className="min-h-10 rounded-lg bg-slate-950 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                    type="submit"
+                    disabled={isLookingUpTransaction || isLoadingDetail}
                   >
-                    <option value="ALL">All methods</option>
-                    {methods.map((method) => (
-                      <option key={method.id} value={method.id}>
-                        {method.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label className="grid gap-1 text-xs font-bold uppercase text-slate-500">
-                  Status
-                  <select
-                    className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold normal-case text-slate-700 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
-                    value={sessionStatusFilter}
-                    onChange={(event) => setSessionStatusFilter(event.target.value)}
-                  >
-                    <option value="ALL">All statuses</option>
-                    {statusFilters.map((status) => (
-                      <option key={status} value={status}>
-                        {status}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <span className="rounded-md bg-slate-100 px-2.5 py-2 text-center text-xs font-bold text-slate-600">{sessions.length}</span>
+                    {isLookingUpTransaction ? "Loading..." : "Lookup"}
+                  </button>
+                </form>
+                <div className="grid gap-3 sm:grid-cols-[180px_220px_auto] sm:items-end">
+                  <label className="grid gap-1 text-xs font-bold uppercase text-slate-500">
+                    Method
+                    <select
+                      className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold normal-case text-slate-700 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                      value={sessionMethodFilter}
+                      onChange={(event) => setSessionMethodFilter(event.target.value as "ALL" | MethodId)}
+                    >
+                      <option value="ALL">All methods</option>
+                      {methods.map((method) => (
+                        <option key={method.id} value={method.id}>
+                          {method.label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="grid gap-1 text-xs font-bold uppercase text-slate-500">
+                    Status
+                    <select
+                      className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold normal-case text-slate-700 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                      value={sessionStatusFilter}
+                      onChange={(event) => setSessionStatusFilter(event.target.value)}
+                    >
+                      <option value="ALL">All statuses</option>
+                      {statusFilters.map((status) => (
+                        <option key={status} value={status}>
+                          {status}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <span className="rounded-md bg-slate-100 px-2.5 py-2 text-center text-xs font-bold text-slate-600">{sessions.length}</span>
+                </div>
               </div>
             </div>
 
