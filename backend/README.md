@@ -55,7 +55,7 @@ BOOTSTRAP_OPERATOR_ROLE=OPERATIONS
 
 ## Initial Endpoints
 
-- `GET /api/system/health`
+- `GET /api/system/health` with service and database readiness
 - `POST /api/auth/login`
 - `GET /api/verification/methods`
 - `GET /api/verification/sessions` with optional `method` and `status` filters

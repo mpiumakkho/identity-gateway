@@ -9,8 +9,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/system")
 public class SystemController {
 
+    private final SystemHealthService systemHealthService;
+
+    public SystemController(SystemHealthService systemHealthService) {
+        this.systemHealthService = systemHealthService;
+    }
+
     @GetMapping("/health")
     public ApiResponse<SystemHealthResponse> health() {
-        return ApiResponse.ok(new SystemHealthResponse("identity-gateway", "UP"));
+        return ApiResponse.ok(systemHealthService.health());
     }
 }

@@ -10,6 +10,7 @@ import { DopaPanel } from "./DopaPanel";
 import { ManualIdentityPanel } from "./ManualIdentityPanel";
 import { OperationsDashboardPanel } from "./OperationsDashboardPanel";
 import { SummaryPanel } from "./SummaryPanel";
+import { SystemHealthPanel } from "./SystemHealthPanel";
 import type { MethodId, VerificationMethodOption, VerificationSession } from "./types";
 
 const defaultMethods: VerificationMethodOption[] = [
@@ -298,6 +299,8 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
               </div>
             </div>
           </header>
+
+          <SystemHealthPanel accessToken={operator.accessToken} onError={setError} onSessionExpired={onSessionExpired} />
 
           <OperationsDashboardPanel accessToken={operator.accessToken} onError={setError} onSessionExpired={onSessionExpired} />
 
