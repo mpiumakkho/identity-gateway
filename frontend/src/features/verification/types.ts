@@ -56,3 +56,18 @@ export type DipChipPayloadResult = {
   readerSerialNumber: string;
   updatedAt: string;
 };
+export type DopaValidationPayload = {
+  consentReference: string;
+};
+
+export type DopaValidationResult = {
+  transactionId: string;
+  sessionStatus: string;
+  validationStatus: string;
+  identitySource: string;
+  maskedNationalId: string;
+  responseCode: string;
+  responseMessage: string;
+  consentReference: string;
+  validatedAt: string;
+};

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { ApiError, getJson, postJson } from "../../api/client";
 import type { AuthSession } from "../auth/types";
 import { DipChipPanel } from "./DipChipPanel";
+import { DopaPanel } from "./DopaPanel";
 import { ManualIdentityPanel } from "./ManualIdentityPanel";
 import type { MethodId, VerificationSession } from "./types";
 
@@ -26,7 +27,7 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
   const [isStarting, setIsStarting] = useState(false);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
-  const activeWorkflowIndex = activeSession?.status === "IDENTITY_CAPTURED" ? 1 : 0;
+  const activeWorkflowIndex = workflowIndex(activeSession?.status);
   const operatorInitials = (operator.displayName || operator.username).slice(0, 2).toUpperCase();
 
   useEffect(() => {
@@ -334,6 +335,14 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
                   onSessionExpired={onSessionExpired}
                 />
               )}
+
+              <DopaPanel
+                accessToken={operator.accessToken}
+                session={activeSession}
+                onError={setError}
+                onSaved={mergeSession}
+                onSessionExpired={onSessionExpired}
+              />
             </div>
           </div>
 
@@ -396,5 +405,25 @@ function methodLabel(method: MethodId) {
 }
 
 function statusClassName(status: string) {
+  if (status === "DOPA_VERIFIED") {
+    return "text-emerald-700";
+  }
+
+  if (status === "DOPA_REJECTED") {
+    return "text-red-700";
+  }
+
   return status === "IDENTITY_CAPTURED" ? "text-cyan-700" : "text-teal-700";
+}
+
+function workflowIndex(status?: string) {
+  if (status === "DOPA_VERIFIED" || status === "DOPA_REJECTED") {
+    return 2;
+  }
+
+  if (status === "IDENTITY_CAPTURED") {
+    return 1;
+  }
+
+  return 0;
 }

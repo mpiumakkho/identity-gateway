@@ -77,6 +77,14 @@ public class VerificationSessionEntity {
         status = VerificationStatus.IDENTITY_CAPTURED;
     }
 
+    public void markDopaVerified() {
+        status = VerificationStatus.DOPA_VERIFIED;
+    }
+
+    public void markDopaRejected() {
+        status = VerificationStatus.DOPA_REJECTED;
+    }
+
     public OperatorUser getCreatedBy() {
         return createdBy;
     }

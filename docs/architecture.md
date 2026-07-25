@@ -10,13 +10,13 @@ Current backend modules:
 
 - `auth`: operator login, user repository, BCrypt password verification
 - `verification`: verification method catalog, persisted session creation, manual identity capture, and Dip Chip payload intake
+- `dopa`: citizen registry validation, result persistence, and audit-safe response mapping
 - `config`: CORS and Spring Security configuration
 - `common`: shared API response and error handling
 
 Planned backend modules:
 
 - `identity`: citizen identity models and validation
-- `dopa`: DOPA request, response, and audit-safe result mapping
 - `dipchip`: citizen-card reader payload intake and normalization
 - `transaction`: transaction persistence and status history
 - `audit`: operator activity logs and interface logs
@@ -40,7 +40,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 3. Method flow: select `DIP_CHIP` or `MANUAL_ENTRY` and create a transaction session.
 4. Manual identity flow: controlled citizen-data entry and validation.
 5. Dip Chip flow: card-reader payload capture and normalization. Done as a dedicated intake flow before DOPA integration.
-6. DOPA flow: external validation request, response mapping, retry/error states.
+6. DOPA flow: citizen registry validation request, response mapping, and verified/rejected session status. Done with a local connector placeholder until partner integration details are configured.
 7. Summary flow: verification decision, transaction closeout, audit event capture.
 
 ## Data Handling

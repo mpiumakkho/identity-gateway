@@ -2,5 +2,7 @@ package com.identitygateway.verification;
 
 public enum VerificationStatus {
     CREATED,
-    IDENTITY_CAPTURED
+    IDENTITY_CAPTURED,
+    DOPA_VERIFIED,
+    DOPA_REJECTED
 }
