@@ -81,6 +81,18 @@ class VerificationServiceTest {
     }
 
     @Test
+    void dashboardReturnsGroupedTransactionMetrics() {
+        when(verificationSessionRepository.count()).thenReturn(3L);
+        when(verificationSessionRepository.countByStatus()).thenReturn(List.of(statusMetric(VerificationStatus.CREATED, 1), statusMetric(VerificationStatus.APPROVED, 2)));
+        when(verificationSessionRepository.countByMethod()).thenReturn(List.of(methodMetric(VerificationMethod.DIP_CHIP, 2), methodMetric(VerificationMethod.MANUAL_ENTRY, 1)));
+
+        VerificationDashboardResponse response = verificationService.dashboard();
+
+        assertThat(response.totalTransactions()).isEqualTo(3);
+        assertThat(response.byStatus()).containsExactly(new VerificationMetricCount("CREATED", 1), new VerificationMetricCount("APPROVED", 2));
+        assertThat(response.byMethod()).containsExactly(new VerificationMetricCount("DIP_CHIP", 2), new VerificationMetricCount("MANUAL_ENTRY", 1));
+    }
+    @Test
     void recentSessionsReturnsLatestTransactions() {
         VerificationSessionEntity entity = sessionEntity(VerificationMethod.DIP_CHIP);
         when(verificationSessionRepository.findRecent(isNull(), isNull(), any(Pageable.class))).thenReturn(List.of(entity));
@@ -311,6 +323,34 @@ class VerificationServiceTest {
                 .hasMessage("Card expiry date must be on or after the issue date.");
     }
 
+
+    private static VerificationStatusMetric statusMetric(VerificationStatus status, long total) {
+        return new VerificationStatusMetric() {
+            @Override
+            public VerificationStatus getStatus() {
+                return status;
+            }
+
+            @Override
+            public long getTotal() {
+                return total;
+            }
+        };
+    }
+
+    private static VerificationMethodMetric methodMetric(VerificationMethod method, long total) {
+        return new VerificationMethodMetric() {
+            @Override
+            public VerificationMethod getMethod() {
+                return method;
+            }
+
+            @Override
+            public long getTotal() {
+                return total;
+            }
+        };
+    }
     private static VerificationSessionEntity sessionEntity(VerificationMethod method) {
         OperatorUser operator = OperatorUser.create("operator", "hash", "Operations User", OperatorRole.OPERATIONS);
         VerificationSessionEntity entity = VerificationSessionEntity.create(method, operator);

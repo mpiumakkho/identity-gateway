@@ -78,6 +78,21 @@ class VerificationControllerTest {
     }
 
     @Test
+    void dashboardReturnsOperationsMetrics() throws Exception {
+        when(verificationService.dashboard()).thenReturn(new VerificationDashboardResponse(
+                3,
+                List.of(new VerificationMetricCount("CREATED", 1), new VerificationMetricCount("APPROVED", 2)),
+                List.of(new VerificationMetricCount("DIP_CHIP", 2), new VerificationMetricCount("MANUAL_ENTRY", 1))
+        ));
+
+        mockMvc.perform(get("/api/verification/dashboard"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.totalTransactions").value(3))
+                .andExpect(jsonPath("$.data.byStatus[0].key").value("CREATED"))
+                .andExpect(jsonPath("$.data.byStatus[0].count").value(1))
+                .andExpect(jsonPath("$.data.byMethod[0].key").value("DIP_CHIP"));
+    }
+    @Test
     void sessionsReturnsRecentTransactions() throws Exception {
         when(verificationService.recentSessions(null, null)).thenReturn(List.of(sessionResponse()));
 

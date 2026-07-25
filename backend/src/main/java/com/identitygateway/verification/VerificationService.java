@@ -57,6 +57,19 @@ public class VerificationService {
     }
 
     @Transactional(readOnly = true)
+    public VerificationDashboardResponse dashboard() {
+        return new VerificationDashboardResponse(
+                verificationSessionRepository.count(),
+                verificationSessionRepository.countByStatus().stream()
+                        .map(metric -> new VerificationMetricCount(metric.getStatus().name(), metric.getTotal()))
+                        .toList(),
+                verificationSessionRepository.countByMethod().stream()
+                        .map(metric -> new VerificationMetricCount(metric.getMethod().name(), metric.getTotal()))
+                        .toList()
+        );
+    }
+
+    @Transactional(readOnly = true)
     public List<VerificationSessionResponse> recentSessions() {
         return recentSessions(null, null);
     }

@@ -227,6 +227,25 @@ Response data:
 Unsupported event types return `400` with code `BAD_REQUEST`.
 ## Verification
 
+### `GET /verification/dashboard`
+
+Returns aggregate transaction metrics for the operator console. Requires authentication.
+
+Response data:
+
+```json
+{
+  "totalTransactions": 3,
+  "byStatus": [
+    { "key": "CREATED", "count": 1 },
+    { "key": "APPROVED", "count": 2 }
+  ],
+  "byMethod": [
+    { "key": "DIP_CHIP", "count": 2 },
+    { "key": "MANUAL_ENTRY", "count": 1 }
+  ]
+}
+```
 ### `GET /verification/methods`
 
 Returns enabled verification intake methods. Requires authentication.

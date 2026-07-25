@@ -34,6 +34,11 @@ public class VerificationController {
         return ApiResponse.ok(verificationService.methods());
     }
 
+    @GetMapping("/dashboard")
+    public ApiResponse<VerificationDashboardResponse> dashboard() {
+        return ApiResponse.ok(verificationService.dashboard());
+    }
+
     @GetMapping("/sessions")
     public ApiResponse<List<VerificationSessionResponse>> sessions(
             @RequestParam(required = false) String method,

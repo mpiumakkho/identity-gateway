@@ -27,6 +27,21 @@ public interface VerificationSessionRepository extends JpaRepository<Verificatio
             @Param("status") VerificationStatus status,
             Pageable pageable
     );
+
+    @Query("""
+            select session.status as status, count(session) as total
+            from VerificationSessionEntity session
+            group by session.status
+            """)
+    List<VerificationStatusMetric> countByStatus();
+
+    @Query("""
+            select session.method as method, count(session) as total
+            from VerificationSessionEntity session
+            group by session.method
+            """)
+    List<VerificationMethodMetric> countByMethod();
+
     @EntityGraph(attributePaths = "createdBy")
     @Query("select session from VerificationSessionEntity session where session.id = :id")
     Optional<VerificationSessionEntity> findDetailById(@Param("id") UUID id);

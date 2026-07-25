@@ -8,6 +8,7 @@ import type { AuthSession } from "../auth/types";
 import { DipChipPanel } from "./DipChipPanel";
 import { DopaPanel } from "./DopaPanel";
 import { ManualIdentityPanel } from "./ManualIdentityPanel";
+import { OperationsDashboardPanel } from "./OperationsDashboardPanel";
 import { SummaryPanel } from "./SummaryPanel";
 import type { MethodId, VerificationSession } from "./types";
 
@@ -230,6 +231,8 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
               </div>
             </div>
           </header>
+
+          <OperationsDashboardPanel accessToken={operator.accessToken} onError={setError} onSessionExpired={onSessionExpired} />
 
           <div className="mb-5 grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-white p-2 shadow-sm sm:grid-cols-4">
             {workflowSteps.map((step, index) => {
