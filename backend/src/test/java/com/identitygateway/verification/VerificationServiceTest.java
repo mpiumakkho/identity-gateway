@@ -10,6 +10,7 @@ import com.identitygateway.dopa.DopaGatewayResult;
 import com.identitygateway.dopa.DopaIdentitySource;
 import com.identitygateway.dopa.DopaValidationAttempt;
 import com.identitygateway.dopa.DopaValidationAttemptRepository;
+import com.identitygateway.dopa.DopaValidationHistoryResponse;
 import com.identitygateway.dopa.DopaValidationResultStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -148,7 +149,27 @@ class VerificationServiceTest {
                 .hasMessage("Verification session not found.");
     }
 
+
     @Test
+    void dopaValidationHistoryReturnsLatestAttempts() {
+        VerificationSessionEntity session = sessionEntity(VerificationMethod.DIP_CHIP);
+        DopaValidationAttempt attempt = DopaValidationAttempt.create(
+                session,
+                DopaIdentitySource.DIP_CHIP,
+                new DopaGatewayResult(DopaValidationResultStatus.MATCHED, "DOPA-0000", "Citizen identity matched."),
+                "CONSENT-001"
+        );
+        attempt.prePersist();
+        when(verificationSessionRepository.findDetailById(session.getId())).thenReturn(Optional.of(session));
+        when(dopaValidationAttemptRepository.findTop10BySessionIdOrderByValidatedAtDesc(session.getId())).thenReturn(List.of(attempt));
+
+        List<DopaValidationHistoryResponse> responses = verificationService.dopaValidationHistory(session.getId());
+
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).validationStatus()).isEqualTo("MATCHED");
+        assertThat(responses.get(0).responseCode()).isEqualTo("DOPA-0000");
+        assertThat(responses.get(0).consentReference()).isEqualTo("CONSENT-001");
+    }    @Test
     void startSessionPersistsCreatedSessionForOperator() {
         AuthenticatedOperator authenticatedOperator = authenticatedOperator();
         OperatorUser operator = OperatorUser.create("operator", "hash", "Operations User", OperatorRole.OPERATIONS);

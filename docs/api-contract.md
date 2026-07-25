@@ -428,6 +428,27 @@ Response data:
 
 Invalid payloads return `400` with code `VALIDATION_ERROR`. Non-Dip-Chip sessions return `400` with code `BAD_REQUEST`.
 
+### `GET /verification/sessions/{transactionId}/dopa-validations`
+
+Returns the latest 10 DOPA validation attempts for a transaction. Requires authentication. The response does not include national ID, laser code, or raw identity payloads.
+
+Response data:
+
+```json
+[
+  {
+    "attemptId": "uuid",
+    "validationStatus": "MATCHED",
+    "identitySource": "DIP_CHIP",
+    "responseCode": "DOPA-0000",
+    "responseMessage": "Citizen identity matched.",
+    "consentReference": "CONSENT-001",
+    "validatedAt": "2026-07-25T01:30:00Z"
+  }
+]
+```
+
+Unknown transaction IDs return `404` with code `NOT_FOUND`.
 ### `POST /verification/sessions/{transactionId}/dopa-validation`
 
 Validates the captured identity details for a transaction session. Requires authentication. The session must already be `IDENTITY_CAPTURED`, `DOPA_VERIFIED`, or `DOPA_REJECTED`. A matched result moves the session to `DOPA_VERIFIED`; an unmatched result moves it to `DOPA_REJECTED`. The response masks the national ID and never returns the laser code.

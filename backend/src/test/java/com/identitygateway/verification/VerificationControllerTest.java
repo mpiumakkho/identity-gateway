@@ -6,6 +6,7 @@ import com.identitygateway.auth.OperatorRole;
 import com.identitygateway.auth.OperatorSessionService;
 import com.identitygateway.common.error.GlobalExceptionHandler;
 import com.identitygateway.audit.AuditEventResponse;
+import com.identitygateway.dopa.DopaValidationHistoryResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -151,7 +152,27 @@ class VerificationControllerTest {
                 .andExpect(jsonPath("$.data[0].metadataJson").value("{\"method\":\"DIP_CHIP\"}"));
     }
 
+
     @Test
+    void dopaValidationHistoryReturnsAttempts() throws Exception {
+        UUID transactionId = UUID.fromString("b9d38258-8ec4-4645-a6ca-e901e1c1766a");
+        when(verificationService.dopaValidationHistory(transactionId)).thenReturn(List.of(new DopaValidationHistoryResponse(
+                UUID.fromString("5e4374f7-7d17-4556-984c-19035b8ad64a"),
+                "MATCHED",
+                "DIP_CHIP",
+                "DOPA-0000",
+                "Citizen identity matched.",
+                "CONSENT-001",
+                Instant.parse("2026-07-25T01:30:00Z")
+        )));
+
+        mockMvc.perform(get("/api/verification/sessions/{transactionId}/dopa-validations", transactionId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data", hasSize(1)))
+                .andExpect(jsonPath("$.data[0].attemptId").value("5e4374f7-7d17-4556-984c-19035b8ad64a"))
+                .andExpect(jsonPath("$.data[0].validationStatus").value("MATCHED"))
+                .andExpect(jsonPath("$.data[0].responseCode").value("DOPA-0000"));
+    }    @Test
     void startSessionCreatesTransactionSession() throws Exception {
         setAuthenticatedOperator();
         when(verificationService.startSession(any(AuthenticatedOperator.class), any(StartVerificationRequest.class))).thenReturn(sessionResponse());

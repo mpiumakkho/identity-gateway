@@ -3,6 +3,7 @@ package com.identitygateway.verification;
 import com.identitygateway.auth.AuthenticatedOperator;
 import com.identitygateway.common.api.ApiResponse;
 import com.identitygateway.audit.AuditEventResponse;
+import com.identitygateway.dopa.DopaValidationHistoryResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -55,6 +56,11 @@ public class VerificationController {
     @GetMapping("/sessions/{transactionId}/audit-events")
     public ApiResponse<List<AuditEventResponse>> auditEvents(@PathVariable UUID transactionId) {
         return ApiResponse.ok(verificationService.auditEvents(transactionId));
+    }
+
+    @GetMapping("/sessions/{transactionId}/dopa-validations")
+    public ApiResponse<List<DopaValidationHistoryResponse>> dopaValidationHistory(@PathVariable UUID transactionId) {
+        return ApiResponse.ok(verificationService.dopaValidationHistory(transactionId));
     }
 
     @PostMapping("/sessions")

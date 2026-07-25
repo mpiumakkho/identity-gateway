@@ -9,6 +9,7 @@ import com.identitygateway.audit.AuditService;
 import com.identitygateway.common.error.ResourceNotFoundException;
 import com.identitygateway.dopa.DopaValidationAttempt;
 import com.identitygateway.dopa.DopaValidationAttemptRepository;
+import com.identitygateway.dopa.DopaValidationHistoryResponse;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -92,6 +93,14 @@ public class VerificationService {
     public List<AuditEventResponse> auditEvents(UUID transactionId) {
         requireSession(transactionId);
         return auditService.transactionEvents(transactionId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<DopaValidationHistoryResponse> dopaValidationHistory(UUID transactionId) {
+        requireSession(transactionId);
+        return dopaValidationAttemptRepository.findTop10BySessionIdOrderByValidatedAtDesc(transactionId).stream()
+                .map(DopaValidationHistoryResponse::from)
+                .toList();
     }
 
     @Transactional

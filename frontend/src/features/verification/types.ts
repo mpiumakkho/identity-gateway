@@ -104,6 +104,15 @@ export type DopaValidationResult = {
   consentReference: string;
   validatedAt: string;
 };
+export type DopaValidationHistory = {
+  attemptId: string;
+  validationStatus: string;
+  identitySource: string;
+  responseCode: string;
+  responseMessage: string;
+  consentReference: string;
+  validatedAt: string;
+};
 export type CloseVerificationPayload = {
   decision: "APPROVED" | "REJECTED";
   notes: string;

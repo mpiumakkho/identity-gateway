@@ -10,7 +10,7 @@ Current backend modules:
 
 - `auth`: operator login, user repository, BCrypt password verification, active session controls, self-service password changes, and admin operator management
 - `verification`: verification method catalog, dashboard metrics, persisted session creation, transaction inquiry, enriched transaction detail, manual identity capture, Dip Chip payload intake, and decision closeout
-- `dopa`: citizen registry validation, result persistence, and audit-safe response mapping
+- `dopa`: citizen registry validation, result persistence, validation history, and audit-safe response mapping
 - `audit`: persisted operator, authentication, and transaction audit timeline with admin inquiry
 - `config`: CORS and Spring Security configuration
 - `common`: shared API response and error handling
@@ -49,6 +49,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 13. Active sessions flow: current-operator session listing and other-session revocation. Done with token-hash matching, ownership checks, audit events, and account security controls.
 14. Audit inquiry flow: admin review of recent audit events across authentication, operator management, sessions, and verification transactions. Done with event filters, capped limits, and console controls.
 15. Operations dashboard flow: aggregate verification transaction metrics by status and intake method. Done with grouped database queries and console summary cards.
+16. DOPA validation history flow: latest validation attempts per transaction. Done with safe attempt responses, transaction-scoped endpoint, and console history list.
 
 ## Data Handling
 

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { ApiError, postJson } from "../../api/client";
+import { ApiError, getJson, postJson } from "../../api/client";
 import { fieldInputClassName, fieldLabelClassName } from "./formStyles";
-import type { DopaValidationPayload, DopaValidationResult, VerificationSession } from "./types";
+import type { DopaValidationHistory, DopaValidationPayload, DopaValidationResult, VerificationSession } from "./types";
 
 const emptyForm: DopaValidationPayload = {
   consentReference: ""
@@ -20,16 +20,69 @@ type DopaPanelProps = {
 
 export function DopaPanel({ accessToken, session, onError, onSaved, onSessionExpired }: DopaPanelProps) {
   const [form, setForm] = useState<DopaValidationPayload>(emptyForm);
+  const [history, setHistory] = useState<DopaValidationHistory[]>([]);
   const [isValidating, setIsValidating] = useState(false);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const [localMessage, setLocalMessage] = useState("");
   const [lastResult, setLastResult] = useState<DopaValidationResult | null>(null);
   const canValidate = Boolean(session && allowedStatuses.has(session.status));
 
   useEffect(() => {
+    let cancelled = false;
+
+    async function loadHistory(transactionId: string) {
+      setIsLoadingHistory(true);
+      setHistory([]);
+
+      try {
+        const response = await getJson<DopaValidationHistory[]>(`/api/verification/sessions/${transactionId}/dopa-validations`, {
+          accessToken
+        });
+
+        if (!cancelled) {
+          setHistory(response.data ?? []);
+        }
+      } catch (err) {
+        if (cancelled) {
+          return;
+        }
+
+        if (err instanceof ApiError && err.status === 401) {
+          onSessionExpired();
+          return;
+        }
+
+        const message = err instanceof Error ? err.message : "Unable to load DOPA validation history.";
+        setLocalMessage(message);
+        onError(message);
+      } finally {
+        if (!cancelled) {
+          setIsLoadingHistory(false);
+        }
+      }
+    }
+
     setForm(emptyForm);
     setLocalMessage("");
     setLastResult(null);
-  }, [session?.transactionId]);
+
+    if (session) {
+      void loadHistory(session.transactionId);
+    } else {
+      setHistory([]);
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken, session?.transactionId, session?.status]);
+
+  async function refreshHistory(transactionId: string) {
+    const response = await getJson<DopaValidationHistory[]>(`/api/verification/sessions/${transactionId}/dopa-validations`, {
+      accessToken
+    });
+    setHistory(response.data ?? []);
+  }
 
   async function submitValidation(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -60,6 +113,7 @@ export function DopaPanel({ accessToken, session, onError, onSaved, onSessionExp
         setLastResult(response.data);
         setLocalMessage(response.data.responseMessage);
         onSaved({ ...session, status: response.data.sessionStatus });
+        await refreshHistory(session.transactionId);
       }
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) {
@@ -149,6 +203,39 @@ export function DopaPanel({ accessToken, session, onError, onSaved, onSessionExp
           </button>
         </form>
       )}
+
+      {session ? (
+        <div className="mt-5 border-t border-slate-100 pt-5">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h3 className="text-base font-bold text-slate-950">Validation History</h3>
+            {isLoadingHistory ? <span className="text-xs font-semibold text-slate-400">Loading</span> : null}
+          </div>
+          {history.length > 0 ? (
+            <ol className="grid gap-3">
+              {history.map((attempt) => (
+                <li key={attempt.attemptId} className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <span className={`text-sm font-bold ${resultClassName(attempt.validationStatus)}`}>{attempt.validationStatus}</span>
+                    <time className="text-xs font-semibold text-slate-400" dateTime={attempt.validatedAt}>
+                      {new Date(attempt.validatedAt).toLocaleString()}
+                    </time>
+                  </div>
+                  <div className="mt-2 grid gap-2 text-xs font-semibold text-slate-500 sm:grid-cols-3">
+                    <span>{attempt.identitySource}</span>
+                    <span>{attempt.responseCode}</span>
+                    <span>{attempt.consentReference}</span>
+                  </div>
+                  <p className="mt-2 text-sm text-slate-600">{attempt.responseMessage}</p>
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm font-medium text-slate-500">
+              No DOPA validation attempts yet.
+            </div>
+          )}
+        </div>
+      ) : null}
     </section>
   );
 }
