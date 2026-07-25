@@ -10,6 +10,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -75,6 +76,21 @@ class OperatorSessionServiceTest {
         service.revoke("valid-token");
 
         assertThat(session.getRevokedAt()).isEqualTo(Instant.parse("2026-07-25T00:00:00Z"));
+    }
+
+    @Test
+    void revokeActiveSessionsExceptKeepsCurrentSessionActive() {
+        OperatorSessionService service = service(Duration.ofHours(8));
+        OperatorUser operator = OperatorUser.create("operator", "hash", "Operations User", OperatorRole.OPERATIONS);
+        operator.prePersist();
+        OperatorSession currentSession = OperatorSession.create(operator, tokenHashingService.hash("current-token"), Instant.parse("2026-07-25T01:00:00Z"));
+        OperatorSession otherSession = OperatorSession.create(operator, tokenHashingService.hash("other-token"), Instant.parse("2026-07-25T01:00:00Z"));
+        when(operatorSessionRepository.findByOperatorIdAndRevokedAtIsNull(operator.getId())).thenReturn(List.of(currentSession, otherSession));
+
+        service.revokeActiveSessionsExcept(operator, "current-token");
+
+        assertThat(currentSession.getRevokedAt()).isNull();
+        assertThat(otherSession.getRevokedAt()).isEqualTo(Instant.parse("2026-07-25T00:00:00Z"));
     }
 
     private OperatorSessionService service(Duration sessionTtl) {

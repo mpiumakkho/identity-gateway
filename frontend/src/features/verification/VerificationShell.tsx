@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ApiError, getJson, postJson } from "../../api/client";
+import { AccountSecurityPanel } from "../auth/AccountSecurityPanel";
 import { AuditTimelinePanel } from "./AuditTimelinePanel";
 import { OperatorManagementPanel } from "../operators/OperatorManagementPanel";
 import type { AuthSession } from "../auth/types";
@@ -36,7 +37,7 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const activeWorkflowIndex = workflowIndex(activeSession?.status);
   const operatorInitials = (operator.displayName || operator.username).slice(0, 2).toUpperCase();
-  const navigationItems = operator.role === "ADMIN" ? ["Verification", "Transactions", "Operators"] : ["Verification", "Transactions", "Audit"];
+  const navigationItems = operator.role === "ADMIN" ? ["Verification", "Transactions", "Account", "Operators"] : ["Verification", "Transactions", "Account"];
 
   useEffect(() => {
     let cancelled = false;
@@ -558,6 +559,12 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
               <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm font-medium text-slate-500">No transactions yet.</div>
             )}
           </section>
+
+          <AccountSecurityPanel
+            accessToken={operator.accessToken}
+            onError={setError}
+            onSessionExpired={onSessionExpired}
+          />
 
           {operator.role === "ADMIN" ? (
             <OperatorManagementPanel

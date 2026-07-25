@@ -59,6 +59,17 @@ public class OperatorSessionService {
                 .filter(session -> session.isActive(now))
                 .forEach(session -> session.revoke(now));
     }
+
+    @Transactional
+    public void revokeActiveSessionsExcept(OperatorUser operator, String activeAccessToken) {
+        Instant now = clock.instant();
+        String activeTokenHash = tokenHashingService.hash(activeAccessToken);
+        operatorSessionRepository.findByOperatorIdAndRevokedAtIsNull(operator.getId()).stream()
+                .filter(session -> session.isActive(now))
+                .filter(session -> !session.getTokenHash().equals(activeTokenHash))
+                .forEach(session -> session.revoke(now));
+    }
+
     @Transactional
     public void revoke(String accessToken) {
         Instant now = clock.instant();

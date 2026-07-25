@@ -78,6 +78,32 @@ public class AuthService {
     }
 
     @Transactional
+    public PasswordChangeResponse changeOwnPassword(AuthenticatedOperator operator, String accessToken, ChangeOwnPasswordRequest request) {
+        OperatorUser user = operatorUserRepository.findById(operator.operatorId())
+                .filter(OperatorUser::isEnabled)
+                .orElseThrow(AuthenticationFailedException::new);
+
+        if (!passwordEncoder.matches(request.currentPassword(), user.getPasswordHash())) {
+            throw new AuthenticationFailedException();
+        }
+
+        if (passwordEncoder.matches(request.newPassword(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("New password must be different from the current password.");
+        }
+
+        user.changePasswordHash(passwordEncoder.encode(request.newPassword()));
+        operatorSessionService.revokeActiveSessionsExcept(user, accessToken);
+        auditService.recordOperatorEvent(
+                AuditEventType.AUTH_PASSWORD_CHANGED,
+                user,
+                "Operator changed own password.",
+                AuditService.metadata("username", user.getUsername())
+        );
+
+        return new PasswordChangeResponse(true);
+    }
+
+    @Transactional
     public void logout(AuthenticatedOperator operator, String accessToken) {
         operatorSessionService.revoke(accessToken);
         auditService.recordOperatorEvent(

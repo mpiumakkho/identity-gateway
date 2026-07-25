@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -32,6 +33,16 @@ public class AuthController {
     @GetMapping("/me")
     public ApiResponse<CurrentOperatorResponse> me(@AuthenticationPrincipal AuthenticatedOperator operator) {
         return ApiResponse.ok(authService.currentOperator(operator));
+    }
+
+    @PutMapping("/password")
+    public ApiResponse<PasswordChangeResponse> changePassword(
+            @AuthenticationPrincipal AuthenticatedOperator operator,
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader,
+            @Valid @RequestBody ChangeOwnPasswordRequest request
+    ) {
+        String accessToken = bearerTokenResolver.resolve(authorizationHeader).orElseThrow(AuthenticationFailedException::new);
+        return ApiResponse.ok(authService.changeOwnPassword(operator, accessToken, request));
     }
 
     @PostMapping("/logout")

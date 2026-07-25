@@ -1,7 +1,7 @@
 package com.identitygateway.auth;
 
-import com.identitygateway.common.error.AuthenticationFailedException;
 import com.identitygateway.audit.AuditService;
+import com.identitygateway.common.error.AuthenticationFailedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -74,5 +74,45 @@ class AuthServiceTest {
                 .hasMessage("Invalid username or password.");
 
         verify(operatorSessionService, never()).createSession(user);
+    }
+
+    @Test
+    void changeOwnPasswordVerifiesCurrentPasswordAndKeepsCurrentSession() {
+        String passwordHash = passwordEncoder.encode("current-password");
+        OperatorUser user = OperatorUser.create("operator", passwordHash, "Operations User", OperatorRole.OPERATIONS);
+        user.prePersist();
+        AuthenticatedOperator operator = AuthenticatedOperator.from(user, Instant.parse("2026-07-25T08:00:00Z"));
+
+        when(operatorUserRepository.findById(user.getId())).thenReturn(Optional.of(user));
+
+        PasswordChangeResponse response = authService.changeOwnPassword(
+                operator,
+                "current-token",
+                new ChangeOwnPasswordRequest("current-password", "new-secret-123")
+        );
+
+        assertThat(response.passwordChanged()).isTrue();
+        assertThat(passwordEncoder.matches("new-secret-123", user.getPasswordHash())).isTrue();
+        verify(operatorSessionService).revokeActiveSessionsExcept(user, "current-token");
+    }
+
+    @Test
+    void changeOwnPasswordRejectsWrongCurrentPassword() {
+        String passwordHash = passwordEncoder.encode("current-password");
+        OperatorUser user = OperatorUser.create("operator", passwordHash, "Operations User", OperatorRole.OPERATIONS);
+        user.prePersist();
+        AuthenticatedOperator operator = AuthenticatedOperator.from(user, Instant.parse("2026-07-25T08:00:00Z"));
+
+        when(operatorUserRepository.findById(user.getId())).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> authService.changeOwnPassword(
+                operator,
+                "current-token",
+                new ChangeOwnPasswordRequest("wrong-password", "new-secret-123")
+        ))
+                .isInstanceOf(AuthenticationFailedException.class)
+                .hasMessage("Invalid username or password.");
+
+        verify(operatorSessionService, never()).revokeActiveSessionsExcept(user, "current-token");
     }
 }

@@ -73,6 +73,29 @@ Response data:
 }
 ```
 
+### `PUT /auth/password`
+
+Changes the current operator password after verifying the current password. The current bearer token remains active and other active sessions for the same operator are revoked.
+
+Request:
+
+```json
+{
+  "currentPassword": "current-secret-123",
+  "newPassword": "new-secret-123"
+}
+```
+
+Response data:
+
+```json
+{
+  "passwordChanged": true
+}
+```
+
+An incorrect current password returns `401` with code `INVALID_CREDENTIALS`. Missing, expired, revoked, or invalid tokens return `401` with code `AUTHENTICATION_REQUIRED`.
+
 ### `POST /auth/logout`
 
 Revokes the current bearer token.

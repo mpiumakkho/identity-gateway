@@ -6,16 +6,22 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -60,5 +66,30 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.data.role").value("OPERATIONS"))
                 .andExpect(jsonPath("$.data.accessToken").value("issued-token"))
                 .andExpect(jsonPath("$.data.expiresAt").value("2026-07-25T08:00:00Z"));
+    }
+
+    @Test
+    void changePasswordReturnsPasswordChangeResult() throws Exception {
+        AuthenticatedOperator operator = new AuthenticatedOperator(
+                UUID.fromString("9e04e2eb-d74a-4d55-987c-f38660aa3060"),
+                "operator",
+                "Operations User",
+                OperatorRole.OPERATIONS,
+                Instant.parse("2026-07-25T08:00:00Z")
+        );
+        UsernamePasswordAuthenticationToken authenticatedRequest = new UsernamePasswordAuthenticationToken(operator, null, operator.authorities());
+
+        when(bearerTokenResolver.resolve("Bearer current-token")).thenReturn(Optional.of("current-token"));
+        when(authService.changeOwnPassword(eq(operator), eq("current-token"), any(ChangeOwnPasswordRequest.class)))
+                .thenReturn(new PasswordChangeResponse(true));
+
+        mockMvc.perform(put("/api/auth/password")
+                        .with(authentication(authenticatedRequest))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer current-token")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"currentPassword\":\"current-password\",\"newPassword\":\"new-secret-123\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("success"))
+                .andExpect(jsonPath("$.data.passwordChanged").value(true));
     }
 }
