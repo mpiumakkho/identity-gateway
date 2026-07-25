@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ApiError, getJson, postJson } from "../../api/client";
 import { AuditTimelinePanel } from "./AuditTimelinePanel";
+import { OperatorManagementPanel } from "../operators/OperatorManagementPanel";
 import type { AuthSession } from "../auth/types";
 import { DipChipPanel } from "./DipChipPanel";
 import { DopaPanel } from "./DopaPanel";
@@ -35,6 +36,7 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const activeWorkflowIndex = workflowIndex(activeSession?.status);
   const operatorInitials = (operator.displayName || operator.username).slice(0, 2).toUpperCase();
+  const navigationItems = operator.role === "ADMIN" ? ["Verification", "Transactions", "Operators"] : ["Verification", "Transactions", "Audit"];
 
   useEffect(() => {
     let cancelled = false;
@@ -169,23 +171,23 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
           </div>
 
           <nav className="flex gap-2 overflow-x-auto lg:grid lg:overflow-visible" aria-label="Primary navigation">
-            {[
-              ["Verification", "active"],
-              ["Transactions", ""],
-              ["Audit", ""]
-            ].map(([label, state]) => (
-              <a
-                key={label}
-                className={
-                  state === "active"
-                    ? "rounded-lg bg-white/10 px-3 py-2 text-sm font-semibold text-white"
-                    : "rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition hover:bg-white/10 hover:text-white"
-                }
-                href={`#${label.toLowerCase()}`}
-              >
-                {label}
-              </a>
-            ))}
+            {navigationItems.map((label) => {
+              const state = label === "Verification" ? "active" : "";
+
+              return (
+                <a
+                  key={label}
+                  className={
+                    state === "active"
+                      ? "rounded-lg bg-white/10 px-3 py-2 text-sm font-semibold text-white"
+                      : "rounded-lg px-3 py-2 text-sm font-medium text-slate-400 transition hover:bg-white/10 hover:text-white"
+                  }
+                  href={`#${label.toLowerCase()}`}
+                >
+                  {label}
+                </a>
+              );
+            })}
           </nav>
         </aside>
 
@@ -556,6 +558,15 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
               <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm font-medium text-slate-500">No transactions yet.</div>
             )}
           </section>
+
+          {operator.role === "ADMIN" ? (
+            <OperatorManagementPanel
+              accessToken={operator.accessToken}
+              currentOperatorId={operator.operatorId}
+              onError={setError}
+              onSessionExpired={onSessionExpired}
+            />
+          ) : null}
         </section>
       </div>
     </main>

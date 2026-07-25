@@ -28,7 +28,7 @@ Automated tests use the `test` profile with H2 so unit and slice tests do not re
 
 ## Frontend
 
-The frontend is a React Vite app for staff operations. Styling uses Tailwind CSS with Preline UI components. Feature code lives under `src/features`, shared API helpers under `src/api`, and shared styling under `src/styles`.
+The frontend is a React Vite app for staff operations. Styling uses Tailwind CSS with Preline UI components. Feature code lives under `src/features`, shared API helpers under `src/api`, and shared styling under `src/styles`. Admin-only operator management UI lives under `src/features/operators`.
 
 Preline is loaded with a dynamic import after React mounts so the main application bundle stays lighter.
 
@@ -44,7 +44,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 8. Audit flow: operator and transaction event timeline. Done with persisted audit events and a transaction timeline view.
 9. Transaction inquiry flow: method and status filtering for persisted verification sessions. Done with backend query filters and console controls.
 10. Transaction detail flow: masked identity, DOPA, and closeout summaries. Done with enriched detail responses and console summary sections.
-11. Operator management flow: admin operator listing, account creation, password changes, and disabling. Done with BCrypt hashing, session revocation, and audit events.
+11. Operator management flow: admin operator listing, account creation, password changes, and disabling. Done with BCrypt hashing, session revocation, audit events, and an admin console panel.
 
 ## Data Handling
 
