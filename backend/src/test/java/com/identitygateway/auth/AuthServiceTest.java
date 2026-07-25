@@ -1,6 +1,7 @@
 package com.identitygateway.auth;
 
 import com.identitygateway.common.error.AuthenticationFailedException;
+import com.identitygateway.audit.AuditService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -27,13 +28,16 @@ class AuthServiceTest {
     @Mock
     private OperatorSessionService operatorSessionService;
 
+    @Mock
+    private AuditService auditService;
+
     private PasswordEncoder passwordEncoder;
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
         passwordEncoder = new BCryptPasswordEncoder();
-        authService = new AuthService(operatorUserRepository, passwordEncoder, operatorSessionService);
+        authService = new AuthService(operatorUserRepository, passwordEncoder, operatorSessionService, auditService);
     }
 
     @Test

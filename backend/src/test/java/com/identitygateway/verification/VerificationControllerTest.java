@@ -5,6 +5,7 @@ import com.identitygateway.auth.BearerTokenResolver;
 import com.identitygateway.auth.OperatorRole;
 import com.identitygateway.auth.OperatorSessionService;
 import com.identitygateway.common.error.GlobalExceptionHandler;
+import com.identitygateway.audit.AuditEventResponse;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -99,6 +100,31 @@ class VerificationControllerTest {
     }
 
     @Test
+    void auditEventsReturnsTransactionTimeline() throws Exception {
+        UUID transactionId = UUID.fromString("b9d38258-8ec4-4645-a6ca-e901e1c1766a");
+        when(verificationService.auditEvents(transactionId)).thenReturn(List.of(new AuditEventResponse(
+                UUID.fromString("2c287647-1807-4a7b-9f37-b53a6c3a0228"),
+                "VERIFICATION_SESSION_CREATED",
+                transactionId,
+                new SessionOperatorResponse(
+                        UUID.fromString("9e04e2eb-d74a-4d55-987c-f38660aa3060"),
+                        "operator",
+                        "Operations User"
+                ),
+                "Verification session created.",
+                "{\"method\":\"DIP_CHIP\"}",
+                Instant.parse("2026-07-25T00:01:00Z")
+        )));
+
+        mockMvc.perform(get("/api/verification/sessions/{transactionId}/audit-events", transactionId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data", hasSize(1)))
+                .andExpect(jsonPath("$.data[0].eventType").value("VERIFICATION_SESSION_CREATED"))
+                .andExpect(jsonPath("$.data[0].operator.username").value("operator"))
+                .andExpect(jsonPath("$.data[0].metadataJson").value("{\"method\":\"DIP_CHIP\"}"));
+    }
+
+    @Test
     void startSessionCreatesTransactionSession() throws Exception {
         setAuthenticatedOperator();
         when(verificationService.startSession(any(AuthenticatedOperator.class), any(StartVerificationRequest.class))).thenReturn(sessionResponse());
@@ -131,6 +157,7 @@ class VerificationControllerTest {
 
     @Test
     void saveManualIdentityReturnsCapturedIdentity() throws Exception {
+        setAuthenticatedOperator();
         UUID transactionId = UUID.fromString("b9d38258-8ec4-4645-a6ca-e901e1c1766a");
         ManualIdentityResponse response = new ManualIdentityResponse(
                 transactionId,
@@ -142,7 +169,7 @@ class VerificationControllerTest {
                 LocalDate.parse("1990-01-31"),
                 Instant.parse("2026-07-25T01:15:00Z")
         );
-        when(verificationService.saveManualIdentity(any(UUID.class), any(ManualIdentityRequest.class))).thenReturn(response);
+        when(verificationService.saveManualIdentity(any(), any(UUID.class), any(ManualIdentityRequest.class))).thenReturn(response);
 
         mockMvc.perform(put("/api/verification/sessions/{transactionId}/manual-identity", transactionId)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -189,6 +216,7 @@ class VerificationControllerTest {
 
     @Test
     void saveDipChipPayloadReturnsCapturedIdentity() throws Exception {
+        setAuthenticatedOperator();
         UUID transactionId = UUID.fromString("b9d38258-8ec4-4645-a6ca-e901e1c1766a");
         DipChipPayloadResponse response = new DipChipPayloadResponse(
                 transactionId,
@@ -204,7 +232,7 @@ class VerificationControllerTest {
                 "RD-001",
                 Instant.parse("2026-07-25T01:20:00Z")
         );
-        when(verificationService.saveDipChipPayload(any(UUID.class), any(DipChipPayloadRequest.class))).thenReturn(response);
+        when(verificationService.saveDipChipPayload(any(), any(UUID.class), any(DipChipPayloadRequest.class))).thenReturn(response);
 
         mockMvc.perform(put("/api/verification/sessions/{transactionId}/dip-chip-payload", transactionId)
                         .contentType(MediaType.APPLICATION_JSON)

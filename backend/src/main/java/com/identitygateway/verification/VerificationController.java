@@ -2,6 +2,7 @@ package com.identitygateway.verification;
 
 import com.identitygateway.auth.AuthenticatedOperator;
 import com.identitygateway.common.api.ApiResponse;
+import com.identitygateway.audit.AuditEventResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -42,6 +43,11 @@ public class VerificationController {
         return ApiResponse.ok(verificationService.session(transactionId));
     }
 
+    @GetMapping("/sessions/{transactionId}/audit-events")
+    public ApiResponse<List<AuditEventResponse>> auditEvents(@PathVariable UUID transactionId) {
+        return ApiResponse.ok(verificationService.auditEvents(transactionId));
+    }
+
     @PostMapping("/sessions")
     public ResponseEntity<ApiResponse<VerificationSessionResponse>> startSession(
             @AuthenticationPrincipal AuthenticatedOperator operator,
@@ -54,18 +60,20 @@ public class VerificationController {
 
     @PutMapping("/sessions/{transactionId}/manual-identity")
     public ApiResponse<ManualIdentityResponse> saveManualIdentity(
+            @AuthenticationPrincipal AuthenticatedOperator operator,
             @PathVariable UUID transactionId,
             @Valid @RequestBody ManualIdentityRequest request
     ) {
-        return ApiResponse.ok(verificationService.saveManualIdentity(transactionId, request));
+        return ApiResponse.ok(verificationService.saveManualIdentity(operator, transactionId, request));
     }
 
     @PutMapping("/sessions/{transactionId}/dip-chip-payload")
     public ApiResponse<DipChipPayloadResponse> saveDipChipPayload(
+            @AuthenticationPrincipal AuthenticatedOperator operator,
             @PathVariable UUID transactionId,
             @Valid @RequestBody DipChipPayloadRequest request
     ) {
-        return ApiResponse.ok(verificationService.saveDipChipPayload(transactionId, request));
+        return ApiResponse.ok(verificationService.saveDipChipPayload(operator, transactionId, request));
     }
 
     @PostMapping("/sessions/{transactionId}/closeout")

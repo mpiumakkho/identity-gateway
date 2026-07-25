@@ -3,6 +3,9 @@ package com.identitygateway.verification;
 import com.identitygateway.auth.AuthenticatedOperator;
 import com.identitygateway.auth.OperatorUser;
 import com.identitygateway.auth.OperatorUserRepository;
+import com.identitygateway.audit.AuditEventResponse;
+import com.identitygateway.audit.AuditEventType;
+import com.identitygateway.audit.AuditService;
 import com.identitygateway.common.error.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,19 +25,22 @@ public class VerificationService {
     private final DipChipIdentityEntryRepository dipChipIdentityEntryRepository;
     private final VerificationDecisionRepository verificationDecisionRepository;
     private final OperatorUserRepository operatorUserRepository;
+    private final AuditService auditService;
 
     public VerificationService(
             VerificationSessionRepository verificationSessionRepository,
             ManualIdentityEntryRepository manualIdentityEntryRepository,
             DipChipIdentityEntryRepository dipChipIdentityEntryRepository,
             VerificationDecisionRepository verificationDecisionRepository,
-            OperatorUserRepository operatorUserRepository
+            OperatorUserRepository operatorUserRepository,
+            AuditService auditService
     ) {
         this.verificationSessionRepository = verificationSessionRepository;
         this.manualIdentityEntryRepository = manualIdentityEntryRepository;
         this.dipChipIdentityEntryRepository = dipChipIdentityEntryRepository;
         this.verificationDecisionRepository = verificationDecisionRepository;
         this.operatorUserRepository = operatorUserRepository;
+        this.auditService = auditService;
     }
 
     @Transactional(readOnly = true)
@@ -56,16 +62,29 @@ public class VerificationService {
         return toResponse(requireSession(transactionId));
     }
 
+    @Transactional(readOnly = true)
+    public List<AuditEventResponse> auditEvents(UUID transactionId) {
+        requireSession(transactionId);
+        return auditService.transactionEvents(transactionId);
+    }
+
     @Transactional
     public VerificationSessionResponse startSession(AuthenticatedOperator operator, StartVerificationRequest request) {
         VerificationMethod method = VerificationMethod.from(request.method());
         OperatorUser createdBy = operatorUserRepository.getReferenceById(operator.operatorId());
         VerificationSessionEntity session = verificationSessionRepository.save(VerificationSessionEntity.create(method, createdBy));
+        auditService.recordTransactionEvent(
+                AuditEventType.VERIFICATION_SESSION_CREATED,
+                operator.operatorId(),
+                session,
+                "Verification session created.",
+                AuditService.metadata("method", method.name(), "status", session.getStatus().name())
+        );
         return toResponse(session);
     }
 
     @Transactional
-    public ManualIdentityResponse saveManualIdentity(UUID transactionId, ManualIdentityRequest request) {
+    public ManualIdentityResponse saveManualIdentity(AuthenticatedOperator operator, UUID transactionId, ManualIdentityRequest request) {
         VerificationSessionEntity session = requireSession(transactionId);
         requireOpen(session);
         requireMethod(session, VerificationMethod.MANUAL_ENTRY, "Manual identity can only be captured for MANUAL_ENTRY sessions.");
@@ -76,12 +95,19 @@ public class VerificationService {
 
         session.markIdentityCaptured();
         ManualIdentityEntry savedEntry = manualIdentityEntryRepository.save(entry);
+        auditService.recordTransactionEvent(
+                AuditEventType.MANUAL_IDENTITY_CAPTURED,
+                operator.operatorId(),
+                session,
+                "Manual identity captured.",
+                AuditService.metadata("method", session.getMethod().name(), "status", session.getStatus().name())
+        );
 
         return toManualIdentityResponse(session, savedEntry);
     }
 
     @Transactional
-    public DipChipPayloadResponse saveDipChipPayload(UUID transactionId, DipChipPayloadRequest request) {
+    public DipChipPayloadResponse saveDipChipPayload(AuthenticatedOperator operator, UUID transactionId, DipChipPayloadRequest request) {
         VerificationSessionEntity session = requireSession(transactionId);
         requireOpen(session);
         requireMethod(session, VerificationMethod.DIP_CHIP, "Dip Chip payload can only be captured for DIP_CHIP sessions.");
@@ -93,6 +119,13 @@ public class VerificationService {
 
         session.markIdentityCaptured();
         DipChipIdentityEntry savedEntry = dipChipIdentityEntryRepository.save(entry);
+        auditService.recordTransactionEvent(
+                AuditEventType.DIP_CHIP_PAYLOAD_CAPTURED,
+                operator.operatorId(),
+                session,
+                "Dip Chip payload captured.",
+                AuditService.metadata("method", session.getMethod().name(), "status", session.getStatus().name(), "readerName", savedEntry.getReaderName())
+        );
 
         return toDipChipPayloadResponse(session, savedEntry);
     }
@@ -119,6 +152,13 @@ public class VerificationService {
                 VerificationDecisionEntity.create(session, decision, request.notes(), decidedBy)
         );
         session.close(decision);
+        auditService.recordTransactionEvent(
+                AuditEventType.VERIFICATION_CLOSED,
+                operator.operatorId(),
+                session,
+                "Verification transaction closed.",
+                AuditService.metadata("decision", decision.name(), "status", session.getStatus().name())
+        );
 
         return toCloseoutResponse(session, closeout);
     }

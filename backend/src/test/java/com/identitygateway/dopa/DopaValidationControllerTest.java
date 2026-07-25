@@ -1,5 +1,6 @@
 package com.identitygateway.dopa;
 
+import com.identitygateway.auth.AuthenticatedOperator;
 import com.identitygateway.auth.BearerTokenResolver;
 import com.identitygateway.auth.OperatorSessionService;
 import com.identitygateway.common.error.GlobalExceptionHandler;
@@ -43,7 +44,7 @@ class DopaValidationControllerTest {
     @Test
     void validateReturnsDopaResult() throws Exception {
         UUID transactionId = UUID.fromString("b9d38258-8ec4-4645-a6ca-e901e1c1766a");
-        when(dopaValidationService.validate(any(UUID.class), any(DopaValidationRequest.class))).thenReturn(new DopaValidationResponse(
+        when(dopaValidationService.validate(any(), any(UUID.class), any(DopaValidationRequest.class))).thenReturn(new DopaValidationResponse(
                 transactionId,
                 "DOPA_VERIFIED",
                 "MATCHED",

@@ -65,6 +65,7 @@ BOOTSTRAP_OPERATOR_ROLE=OPERATIONS
 - `PUT /api/verification/sessions/{transactionId}/dip-chip-payload`
 - `POST /api/verification/sessions/{transactionId}/dopa-validation`
 - `POST /api/verification/sessions/{transactionId}/closeout`
+- `GET /api/verification/sessions/{transactionId}/audit-events`
 
 ## Security Notes
 

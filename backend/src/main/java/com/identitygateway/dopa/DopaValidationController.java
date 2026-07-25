@@ -1,7 +1,9 @@
 package com.identitygateway.dopa;
 
 import com.identitygateway.common.api.ApiResponse;
+import com.identitygateway.auth.AuthenticatedOperator;
 import jakarta.validation.Valid;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,9 +24,10 @@ public class DopaValidationController {
 
     @PostMapping
     public ApiResponse<DopaValidationResponse> validate(
+            @AuthenticationPrincipal AuthenticatedOperator operator,
             @PathVariable UUID transactionId,
             @Valid @RequestBody DopaValidationRequest request
     ) {
-        return ApiResponse.ok(dopaValidationService.validate(transactionId, request));
+        return ApiResponse.ok(dopaValidationService.validate(operator, transactionId, request));
     }
 }

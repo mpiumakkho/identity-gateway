@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ApiError, getJson, postJson } from "../../api/client";
+import { AuditTimelinePanel } from "./AuditTimelinePanel";
 import type { AuthSession } from "../auth/types";
 import { DipChipPanel } from "./DipChipPanel";
 import { DopaPanel } from "./DopaPanel";
@@ -350,6 +351,13 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
                 session={activeSession}
                 onError={setError}
                 onSaved={mergeSession}
+                onSessionExpired={onSessionExpired}
+              />
+
+              <AuditTimelinePanel
+                accessToken={operator.accessToken}
+                session={activeSession}
+                onError={setError}
                 onSessionExpired={onSessionExpired}
               />
             </div>

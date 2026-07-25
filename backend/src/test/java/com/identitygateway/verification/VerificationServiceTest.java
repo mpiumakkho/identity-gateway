@@ -5,6 +5,7 @@ import com.identitygateway.auth.OperatorRole;
 import com.identitygateway.auth.OperatorUser;
 import com.identitygateway.auth.OperatorUserRepository;
 import com.identitygateway.common.error.ResourceNotFoundException;
+import com.identitygateway.audit.AuditService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +41,9 @@ class VerificationServiceTest {
     @Mock
     private OperatorUserRepository operatorUserRepository;
 
+    @Mock
+    private AuditService auditService;
+
     private VerificationService verificationService;
 
     @BeforeEach
@@ -49,7 +53,8 @@ class VerificationServiceTest {
                 manualIdentityEntryRepository,
                 dipChipIdentityEntryRepository,
                 verificationDecisionRepository,
-                operatorUserRepository
+                operatorUserRepository,
+                auditService
         );
     }
 
@@ -137,7 +142,7 @@ class VerificationServiceTest {
                     return entry;
                 });
 
-        ManualIdentityResponse response = verificationService.saveManualIdentity(session.getId(), request);
+        ManualIdentityResponse response = verificationService.saveManualIdentity(authenticatedOperator(), session.getId(), request);
 
         assertThat(response.transactionId()).isEqualTo(session.getId());
         assertThat(response.sessionStatus()).isEqualTo("IDENTITY_CAPTURED");
@@ -152,7 +157,7 @@ class VerificationServiceTest {
         VerificationSessionEntity session = sessionEntity(VerificationMethod.DIP_CHIP);
         when(verificationSessionRepository.findDetailById(session.getId())).thenReturn(Optional.of(session));
 
-        assertThatThrownBy(() -> verificationService.saveManualIdentity(session.getId(), manualRequest()))
+        assertThatThrownBy(() -> verificationService.saveManualIdentity(authenticatedOperator(), session.getId(), manualRequest()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Manual identity can only be captured for MANUAL_ENTRY sessions.");
     }
@@ -170,7 +175,7 @@ class VerificationServiceTest {
                     return entry;
                 });
 
-        DipChipPayloadResponse response = verificationService.saveDipChipPayload(session.getId(), request);
+        DipChipPayloadResponse response = verificationService.saveDipChipPayload(authenticatedOperator(), session.getId(), request);
 
         assertThat(response.transactionId()).isEqualTo(session.getId());
         assertThat(response.sessionStatus()).isEqualTo("IDENTITY_CAPTURED");
@@ -185,7 +190,7 @@ class VerificationServiceTest {
         VerificationSessionEntity session = sessionEntity(VerificationMethod.MANUAL_ENTRY);
         when(verificationSessionRepository.findDetailById(session.getId())).thenReturn(Optional.of(session));
 
-        assertThatThrownBy(() -> verificationService.saveDipChipPayload(session.getId(), dipChipRequest()))
+        assertThatThrownBy(() -> verificationService.saveDipChipPayload(authenticatedOperator(), session.getId(), dipChipRequest()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Dip Chip payload can only be captured for DIP_CHIP sessions.");
     }
@@ -256,7 +261,7 @@ class VerificationServiceTest {
         session.close(VerificationDecision.REJECTED);
         when(verificationSessionRepository.findDetailById(session.getId())).thenReturn(Optional.of(session));
 
-        assertThatThrownBy(() -> verificationService.saveManualIdentity(session.getId(), manualRequest()))
+        assertThatThrownBy(() -> verificationService.saveManualIdentity(authenticatedOperator(), session.getId(), manualRequest()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Verification session is already closed.");
     }
@@ -266,7 +271,7 @@ class VerificationServiceTest {
         VerificationSessionEntity session = sessionEntity(VerificationMethod.DIP_CHIP);
         when(verificationSessionRepository.findDetailById(session.getId())).thenReturn(Optional.of(session));
 
-        assertThatThrownBy(() -> verificationService.saveDipChipPayload(session.getId(), dipChipRequestWithInvalidDates()))
+        assertThatThrownBy(() -> verificationService.saveDipChipPayload(authenticatedOperator(), session.getId(), dipChipRequestWithInvalidDates()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Card expiry date must be on or after the issue date.");
     }

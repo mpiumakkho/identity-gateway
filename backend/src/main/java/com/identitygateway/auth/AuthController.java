@@ -35,8 +35,11 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ApiResponse<LogoutResponse> logout(@RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader) {
-        bearerTokenResolver.resolve(authorizationHeader).ifPresent(authService::logout);
+    public ApiResponse<LogoutResponse> logout(
+            @AuthenticationPrincipal AuthenticatedOperator operator,
+            @RequestHeader(HttpHeaders.AUTHORIZATION) String authorizationHeader
+    ) {
+        bearerTokenResolver.resolve(authorizationHeader).ifPresent(accessToken -> authService.logout(operator, accessToken));
         return ApiResponse.ok(new LogoutResponse(true));
     }
 }

@@ -1,8 +1,10 @@
 package com.identitygateway.dopa;
 
+import com.identitygateway.auth.AuthenticatedOperator;
 import com.identitygateway.auth.OperatorRole;
 import com.identitygateway.auth.OperatorUser;
 import com.identitygateway.common.error.ResourceNotFoundException;
+import com.identitygateway.audit.AuditService;
 import com.identitygateway.verification.DipChipIdentityEntry;
 import com.identitygateway.verification.DipChipIdentityEntryRepository;
 import com.identitygateway.verification.DipChipPayloadRequest;
@@ -49,6 +51,9 @@ class DopaValidationServiceTest {
     @Mock
     private DopaGatewayClient dopaGatewayClient;
 
+    @Mock
+    private AuditService auditService;
+
     private DopaValidationService dopaValidationService;
 
     @BeforeEach
@@ -58,7 +63,8 @@ class DopaValidationServiceTest {
                 manualIdentityEntryRepository,
                 dipChipIdentityEntryRepository,
                 dopaValidationAttemptRepository,
-                dopaGatewayClient
+                dopaGatewayClient,
+                auditService
         );
     }
 
@@ -76,7 +82,7 @@ class DopaValidationServiceTest {
             return attempt;
         });
 
-        DopaValidationResponse response = dopaValidationService.validate(session.getId(), new DopaValidationRequest("CONSENT-001"));
+        DopaValidationResponse response = dopaValidationService.validate(authenticatedOperator(), session.getId(), new DopaValidationRequest("CONSENT-001"));
 
         assertThat(response.transactionId()).isEqualTo(session.getId());
         assertThat(response.sessionStatus()).isEqualTo("DOPA_VERIFIED");
@@ -101,7 +107,7 @@ class DopaValidationServiceTest {
             return attempt;
         });
 
-        DopaValidationResponse response = dopaValidationService.validate(session.getId(), new DopaValidationRequest("CONSENT-002"));
+        DopaValidationResponse response = dopaValidationService.validate(authenticatedOperator(), session.getId(), new DopaValidationRequest("CONSENT-002"));
 
         assertThat(response.sessionStatus()).isEqualTo("DOPA_REJECTED");
         assertThat(response.validationStatus()).isEqualTo("NOT_MATCHED");
@@ -114,7 +120,7 @@ class DopaValidationServiceTest {
         VerificationSessionEntity session = sessionEntity(VerificationMethod.MANUAL_ENTRY);
         when(verificationSessionRepository.findDetailById(session.getId())).thenReturn(Optional.of(session));
 
-        assertThatThrownBy(() -> dopaValidationService.validate(session.getId(), new DopaValidationRequest("CONSENT-003")))
+        assertThatThrownBy(() -> dopaValidationService.validate(authenticatedOperator(), session.getId(), new DopaValidationRequest("CONSENT-003")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Identity must be captured before DOPA validation.");
         verify(dopaGatewayClient, never()).validate(any(DopaGatewayRequest.class));
@@ -125,9 +131,19 @@ class DopaValidationServiceTest {
         UUID transactionId = UUID.fromString("15e8023f-7d03-4287-ac9c-73d80ac9af67");
         when(verificationSessionRepository.findDetailById(transactionId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> dopaValidationService.validate(transactionId, new DopaValidationRequest("CONSENT-004")))
+        assertThatThrownBy(() -> dopaValidationService.validate(authenticatedOperator(), transactionId, new DopaValidationRequest("CONSENT-004")))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Verification session not found.");
+    }
+
+    private static AuthenticatedOperator authenticatedOperator() {
+        return new AuthenticatedOperator(
+                UUID.fromString("9e04e2eb-d74a-4d55-987c-f38660aa3060"),
+                "operator",
+                "Operations User",
+                OperatorRole.OPERATIONS,
+                Instant.parse("2026-07-25T08:00:00Z")
+        );
     }
 
     private static VerificationSessionEntity sessionEntity(VerificationMethod method) {

@@ -283,3 +283,26 @@ Response data:
 ```
 
 Invalid payloads return `400` with code `VALIDATION_ERROR`. Transactions that are not ready for closeout return `400` with code `BAD_REQUEST`.
+### `GET /verification/sessions/{transactionId}/audit-events`
+
+Returns the audit timeline for one transaction. Requires authentication. Audit metadata is intentionally limited to workflow-safe fields and excludes national ID, laser code, raw Dip Chip payloads, passwords, and bearer tokens.
+
+Response data:
+
+```json
+[
+  {
+    "eventId": "uuid",
+    "eventType": "VERIFICATION_SESSION_CREATED",
+    "transactionId": "uuid",
+    "operator": {
+      "operatorId": "uuid",
+      "username": "operator",
+      "displayName": "Operations User"
+    },
+    "summary": "Verification session created.",
+    "metadataJson": "{\"method\":\"DIP_CHIP\",\"status\":\"CREATED\"}",
+    "occurredAt": "2026-07-25T00:00:00Z"
+  }
+]
+```

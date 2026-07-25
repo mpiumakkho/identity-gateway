@@ -1,5 +1,8 @@
 package com.identitygateway.dopa;
 
+import com.identitygateway.auth.AuthenticatedOperator;
+import com.identitygateway.audit.AuditEventType;
+import com.identitygateway.audit.AuditService;
 import com.identitygateway.common.error.ResourceNotFoundException;
 import com.identitygateway.verification.DipChipIdentityEntry;
 import com.identitygateway.verification.DipChipIdentityEntryRepository;
@@ -24,23 +27,26 @@ public class DopaValidationService {
     private final DipChipIdentityEntryRepository dipChipIdentityEntryRepository;
     private final DopaValidationAttemptRepository dopaValidationAttemptRepository;
     private final DopaGatewayClient dopaGatewayClient;
+    private final AuditService auditService;
 
     public DopaValidationService(
             VerificationSessionRepository verificationSessionRepository,
             ManualIdentityEntryRepository manualIdentityEntryRepository,
             DipChipIdentityEntryRepository dipChipIdentityEntryRepository,
             DopaValidationAttemptRepository dopaValidationAttemptRepository,
-            DopaGatewayClient dopaGatewayClient
+            DopaGatewayClient dopaGatewayClient,
+            AuditService auditService
     ) {
         this.verificationSessionRepository = verificationSessionRepository;
         this.manualIdentityEntryRepository = manualIdentityEntryRepository;
         this.dipChipIdentityEntryRepository = dipChipIdentityEntryRepository;
         this.dopaValidationAttemptRepository = dopaValidationAttemptRepository;
         this.dopaGatewayClient = dopaGatewayClient;
+        this.auditService = auditService;
     }
 
     @Transactional
-    public DopaValidationResponse validate(UUID transactionId, DopaValidationRequest request) {
+    public DopaValidationResponse validate(AuthenticatedOperator operator, UUID transactionId, DopaValidationRequest request) {
         VerificationSessionEntity session = verificationSessionRepository.findDetailById(transactionId)
                 .orElseThrow(() -> new ResourceNotFoundException(SESSION_NOT_FOUND_MESSAGE));
 
@@ -63,6 +69,14 @@ public class DopaValidationService {
         } else {
             session.markDopaRejected();
         }
+
+        auditService.recordTransactionEvent(
+                AuditEventType.DOPA_VALIDATION_COMPLETED,
+                operator.operatorId(),
+                session,
+                "DOPA validation completed.",
+                AuditService.metadata("result", result.status().name(), "status", session.getStatus().name(), "responseCode", result.responseCode())
+        );
 
         return toResponse(session, identity, savedAttempt);
     }

@@ -84,3 +84,12 @@ export type VerificationCloseoutResult = {
   decidedBy: SessionOperator;
   decidedAt: string;
 };
+export type AuditEvent = {
+  eventId: string;
+  eventType: string;
+  transactionId: string;
+  operator: SessionOperator | null;
+  summary: string;
+  metadataJson: string | null;
+  occurredAt: string;
+};

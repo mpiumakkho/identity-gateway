@@ -1,5 +1,7 @@
 package com.identitygateway.auth;
 
+import com.identitygateway.audit.AuditEventRepository;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +34,9 @@ class SecurityIntegrationTest {
     private OperatorSessionRepository operatorSessionRepository;
 
     @Autowired
+    private AuditEventRepository auditEventRepository;
+
+    @Autowired
     private TokenHashingService tokenHashingService;
 
     @Autowired
@@ -39,6 +44,7 @@ class SecurityIntegrationTest {
 
     @BeforeEach
     void cleanDatabase() {
+        auditEventRepository.deleteAll();
         operatorSessionRepository.deleteAll();
         operatorUserRepository.deleteAll();
     }
