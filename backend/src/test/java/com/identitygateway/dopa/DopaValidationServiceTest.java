@@ -5,12 +5,12 @@ import com.identitygateway.auth.OperatorRole;
 import com.identitygateway.auth.OperatorUser;
 import com.identitygateway.common.error.ResourceNotFoundException;
 import com.identitygateway.audit.AuditService;
+import com.identitygateway.dipchip.DipChipPayloadNormalizer;
+import com.identitygateway.identity.ManualIdentityNormalizer;
 import com.identitygateway.verification.DipChipIdentityEntry;
 import com.identitygateway.verification.DipChipIdentityEntryRepository;
-import com.identitygateway.verification.DipChipPayloadRequest;
 import com.identitygateway.verification.ManualIdentityEntry;
 import com.identitygateway.verification.ManualIdentityEntryRepository;
-import com.identitygateway.verification.ManualIdentityRequest;
 import com.identitygateway.verification.VerificationMethod;
 import com.identitygateway.verification.VerificationSessionEntity;
 import com.identitygateway.verification.VerificationSessionRepository;
@@ -155,7 +155,7 @@ class DopaValidationServiceTest {
     }
 
     private static ManualIdentityEntry manualIdentity(VerificationSessionEntity session) {
-        return ManualIdentityEntry.create(session, new ManualIdentityRequest(
+        return ManualIdentityEntry.create(session, new ManualIdentityNormalizer().normalize(
                 "1234567890121",
                 "Mr.",
                 "Somchai",
@@ -166,7 +166,7 @@ class DopaValidationServiceTest {
     }
 
     private static DipChipIdentityEntry dipChipIdentity(VerificationSessionEntity session) {
-        return DipChipIdentityEntry.create(session, new DipChipPayloadRequest(
+        return DipChipIdentityEntry.create(session, new DipChipPayloadNormalizer().normalize(
                 "1234567890121",
                 "Mr.",
                 "Somchai",

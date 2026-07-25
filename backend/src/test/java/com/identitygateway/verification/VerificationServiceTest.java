@@ -9,6 +9,7 @@ import com.identitygateway.audit.AuditEventType;
 import com.identitygateway.audit.AuditService;
 import com.identitygateway.dipchip.DipChipPayloadNormalizer;
 import com.identitygateway.dopa.DopaGatewayResult;
+import com.identitygateway.identity.ManualIdentityNormalizer;
 import com.identitygateway.dopa.DopaIdentitySource;
 import com.identitygateway.dopa.DopaValidationAttempt;
 import com.identitygateway.dopa.DopaValidationAttemptRepository;
@@ -74,6 +75,7 @@ class VerificationServiceTest {
                 verificationDecisionRepository,
                 dopaValidationAttemptRepository,
                 new DipChipPayloadNormalizer(),
+                new ManualIdentityNormalizer(),
                 operatorUserRepository,
                 auditService
         );
@@ -285,7 +287,7 @@ class VerificationServiceTest {
         assertThat(response.transactionId()).isEqualTo(session.getId());
         assertThat(response.sessionStatus()).isEqualTo("IDENTITY_CAPTURED");
         assertThat(response.maskedNationalId()).isEqualTo("123******0121");
-        assertThat(response.firstName()).isEqualTo("Somchai");
+        assertThat(response.firstName()).isEqualTo("Somchai Middle");
         assertThat(response.lastName()).isEqualTo("Jaidee");
         assertThat(response.updatedAt()).isNotNull();
     }
@@ -463,10 +465,10 @@ class VerificationServiceTest {
         return new ManualIdentityRequest(
                 "1234567890121",
                 "Mr.",
-                "Somchai",
-                "Jaidee",
+                " Somchai  Middle ",
+                " Jaidee ",
                 LocalDate.parse("1990-01-31"),
-                "JT1234567890"
+                " jt1234567890 "
         );
     }
 
@@ -474,10 +476,10 @@ class VerificationServiceTest {
         return new DipChipPayloadRequest(
                 "1234567890121",
                 "Mr.",
-                "Somchai",
-                "Jaidee",
+                " Somchai  Middle ",
+                " Jaidee ",
                 LocalDate.parse("1990-01-31"),
-                "JT1234567890",
+                " jt1234567890 ",
                 LocalDate.parse("2021-02-01"),
                 LocalDate.parse("2031-01-31"),
                 " ACR39U  Reader ",
@@ -490,10 +492,10 @@ class VerificationServiceTest {
         return new DipChipPayloadRequest(
                 "1234567890121",
                 "Mr.",
-                "Somchai",
-                "Jaidee",
+                " Somchai  Middle ",
+                " Jaidee ",
                 LocalDate.parse("1990-01-31"),
-                "JT1234567890",
+                " jt1234567890 ",
                 LocalDate.parse("2031-01-31"),
                 LocalDate.parse("2021-02-01"),
                 " ACR39U  Reader ",

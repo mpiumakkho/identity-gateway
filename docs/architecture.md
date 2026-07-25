@@ -11,7 +11,7 @@ Current backend modules:
 - `auth`: operator login, user repository, BCrypt password verification, active session controls, self-service password changes, and admin operator management
 - `verification`: persisted verification method catalog, system health, dashboard metrics, persisted session creation, transaction inquiry, enriched transaction detail, manual identity capture, Dip Chip payload intake, and decision closeout
 - `dipchip`: citizen-card reader payload normalization and card-date consistency checks
-- `identity`: shared citizen identity data protection, masking, and validation helpers
+- `identity`: shared citizen identity data protection, masking, validation, and manual identity normalization helpers
 - `dopa`: citizen registry validation, result persistence, validation history, and audit-safe response mapping
 - `audit`: persisted operator, authentication, and transaction audit timeline with admin inquiry
 - `config`: CORS and Spring Security configuration
@@ -54,6 +54,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 20. Identity data protection flow: shared masking for citizen identity data. Done with a common identity helper used by verification and DOPA responses.
 21. National ID validation flow: checksum validation for captured citizen IDs. Done with shared backend validation annotations, request-level enforcement, tests, and client-side pre-submit checks.
 22. Dip Chip normalization flow: reader payload normalization before persistence. Done with a dedicated module, normalized payload mapping, card-date consistency checks, and focused unit coverage.
+23. Manual identity normalization flow: manual-entry identity normalization before persistence. Done with shared text normalization, normalized identity mapping, and focused unit coverage.
 
 ## Data Handling
 

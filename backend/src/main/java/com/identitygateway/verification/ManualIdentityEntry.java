@@ -1,5 +1,7 @@
 package com.identitygateway.verification;
 
+import com.identitygateway.identity.NormalizedManualIdentity;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -57,17 +59,17 @@ public class ManualIdentityEntry {
         this.session = session;
     }
 
-    public static ManualIdentityEntry create(VerificationSessionEntity session, ManualIdentityRequest request) {
-        return new ManualIdentityEntry(session).update(request);
+    public static ManualIdentityEntry create(VerificationSessionEntity session, NormalizedManualIdentity identity) {
+        return new ManualIdentityEntry(session).update(identity);
     }
 
-    public ManualIdentityEntry update(ManualIdentityRequest request) {
-        this.nationalId = request.nationalId().trim();
-        this.title = request.title().trim();
-        this.firstName = request.firstName().trim();
-        this.lastName = request.lastName().trim();
-        this.dateOfBirth = request.dateOfBirth();
-        this.laserCode = request.laserCode().trim();
+    public ManualIdentityEntry update(NormalizedManualIdentity identity) {
+        this.nationalId = identity.nationalId();
+        this.title = identity.title();
+        this.firstName = identity.firstName();
+        this.lastName = identity.lastName();
+        this.dateOfBirth = identity.dateOfBirth();
+        this.laserCode = identity.laserCode();
         return this;
     }
 

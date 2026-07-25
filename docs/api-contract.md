@@ -353,7 +353,7 @@ Response data:
 
 ### `PUT /verification/sessions/{transactionId}/manual-identity`
 
-Captures or updates citizen-card details for a `MANUAL_ENTRY` transaction session. Requires authentication. The session moves to `IDENTITY_CAPTURED` when the identity payload is saved. `laserCode` is accepted for controlled capture but is not returned in API responses.
+Captures or updates citizen-card details for a `MANUAL_ENTRY` transaction session. Requires authentication. The session moves to `IDENTITY_CAPTURED` when the identity payload is saved. Text fields are normalized before persistence. `laserCode` is accepted for controlled capture but is not returned in API responses.
 
 Request:
 

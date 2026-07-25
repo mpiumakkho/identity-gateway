@@ -1,9 +1,9 @@
 package com.identitygateway.dipchip;
 
+import com.identitygateway.identity.IdentityTextNormalizer;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
-import java.util.Locale;
 
 @Component
 public class DipChipPayloadNormalizer {
@@ -22,16 +22,16 @@ public class DipChipPayloadNormalizer {
             String rawPayload
     ) {
         NormalizedDipChipPayload payload = new NormalizedDipChipPayload(
-                clean(nationalId),
-                clean(title),
-                clean(firstName),
-                clean(lastName),
+                IdentityTextNormalizer.clean(nationalId),
+                IdentityTextNormalizer.clean(title),
+                IdentityTextNormalizer.clean(firstName),
+                IdentityTextNormalizer.clean(lastName),
                 dateOfBirth,
-                upper(clean(laserCode)),
+                IdentityTextNormalizer.upperClean(laserCode),
                 cardIssueDate,
                 cardExpiryDate,
-                clean(readerName),
-                upper(clean(readerSerialNumber)),
+                IdentityTextNormalizer.clean(readerName),
+                IdentityTextNormalizer.upperClean(readerSerialNumber),
                 rawPayload.trim()
         );
 
@@ -40,13 +40,5 @@ public class DipChipPayloadNormalizer {
         }
 
         return payload;
-    }
-
-    private static String clean(String value) {
-        return value.trim().replaceAll("\\s+", " ");
-    }
-
-    private static String upper(String value) {
-        return value.toUpperCase(Locale.ROOT);
     }
 }

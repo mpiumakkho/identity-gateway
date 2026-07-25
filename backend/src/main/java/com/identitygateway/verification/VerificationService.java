@@ -10,6 +10,8 @@ import com.identitygateway.common.error.ResourceNotFoundException;
 import com.identitygateway.dipchip.DipChipPayloadNormalizer;
 import com.identitygateway.dipchip.NormalizedDipChipPayload;
 import com.identitygateway.dopa.DopaValidationAttempt;
+import com.identitygateway.identity.ManualIdentityNormalizer;
+import com.identitygateway.identity.NormalizedManualIdentity;
 import com.identitygateway.dopa.DopaValidationAttemptRepository;
 import com.identitygateway.dopa.DopaValidationHistoryResponse;
 import org.springframework.data.domain.PageRequest;
@@ -35,6 +37,7 @@ public class VerificationService {
     private final VerificationDecisionRepository verificationDecisionRepository;
     private final DopaValidationAttemptRepository dopaValidationAttemptRepository;
     private final DipChipPayloadNormalizer dipChipPayloadNormalizer;
+    private final ManualIdentityNormalizer manualIdentityNormalizer;
     private final OperatorUserRepository operatorUserRepository;
     private final AuditService auditService;
 
@@ -46,6 +49,7 @@ public class VerificationService {
             VerificationDecisionRepository verificationDecisionRepository,
             DopaValidationAttemptRepository dopaValidationAttemptRepository,
             DipChipPayloadNormalizer dipChipPayloadNormalizer,
+            ManualIdentityNormalizer manualIdentityNormalizer,
             OperatorUserRepository operatorUserRepository,
             AuditService auditService
     ) {
@@ -56,6 +60,7 @@ public class VerificationService {
         this.verificationDecisionRepository = verificationDecisionRepository;
         this.dopaValidationAttemptRepository = dopaValidationAttemptRepository;
         this.dipChipPayloadNormalizer = dipChipPayloadNormalizer;
+        this.manualIdentityNormalizer = manualIdentityNormalizer;
         this.operatorUserRepository = operatorUserRepository;
         this.auditService = auditService;
     }
@@ -163,9 +168,18 @@ public class VerificationService {
         requireOpen(session);
         requireMethod(session, VerificationMethod.MANUAL_ENTRY, "Manual identity can only be captured for MANUAL_ENTRY sessions.");
 
+        NormalizedManualIdentity identity = manualIdentityNormalizer.normalize(
+                request.nationalId(),
+                request.title(),
+                request.firstName(),
+                request.lastName(),
+                request.dateOfBirth(),
+                request.laserCode()
+        );
+
         ManualIdentityEntry entry = manualIdentityEntryRepository.findBySessionId(session.getId())
-                .map(existing -> existing.update(request))
-                .orElseGet(() -> ManualIdentityEntry.create(session, request));
+                .map(existing -> existing.update(identity))
+                .orElseGet(() -> ManualIdentityEntry.create(session, identity));
 
         session.markIdentityCaptured();
         ManualIdentityEntry savedEntry = manualIdentityEntryRepository.save(entry);
