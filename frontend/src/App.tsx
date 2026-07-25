@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { postJson } from "./api/client";
 import { LoginScreen } from "./features/auth/LoginScreen";
 import { clearAuthSession, loadAuthSession, saveAuthSession } from "./features/auth/authStorage";
 import type { AuthSession } from "./features/auth/types";
@@ -14,13 +15,22 @@ export default function App() {
     setAuthSession(session);
   }
 
-  function handleSignOut() {
+  function clearSession() {
     clearAuthSession();
     setAuthSession(null);
   }
 
+  function handleSignOut() {
+    const accessToken = authSession?.accessToken;
+    clearSession();
+
+    if (accessToken) {
+      void postJson("/api/auth/logout", undefined, { accessToken }).catch(() => undefined);
+    }
+  }
+
   return authSession ? (
-    <VerificationShell operator={authSession} onSignOut={handleSignOut} />
+    <VerificationShell operator={authSession} onSessionExpired={clearSession} onSignOut={handleSignOut} />
   ) : (
     <LoginScreen onAuthenticated={handleAuthenticated} />
   );

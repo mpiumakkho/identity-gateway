@@ -7,6 +7,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Optional;
 
 @Service
 public class OperatorSessionService {
@@ -40,5 +41,32 @@ public class OperatorSessionService {
         operatorSessionRepository.save(OperatorSession.create(operator, tokenHash, expiresAt));
 
         return new IssuedOperatorSession(accessToken, expiresAt);
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<AuthenticatedOperator> authenticate(String accessToken) {
+        Instant now = clock.instant();
+        return operatorSessionRepository.findByTokenHash(tokenHashingService.hash(accessToken))
+                .filter(session -> session.isActive(now))
+                .map(this::toAuthenticatedOperator)
+                .filter(operator -> operator != null);
+    }
+
+    @Transactional
+    public void revoke(String accessToken) {
+        Instant now = clock.instant();
+        operatorSessionRepository.findByTokenHash(tokenHashingService.hash(accessToken))
+                .filter(session -> session.isActive(now))
+                .ifPresent(session -> session.revoke(now));
+    }
+
+    private AuthenticatedOperator toAuthenticatedOperator(OperatorSession session) {
+        OperatorUser operator = session.getOperator();
+
+        if (!operator.isEnabled()) {
+            return null;
+        }
+
+        return AuthenticatedOperator.from(operator, session.getExpiresAt());
     }
 }

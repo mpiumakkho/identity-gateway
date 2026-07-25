@@ -6,19 +6,52 @@ export type ApiResponse<T> = {
   timestamp: string;
 };
 
-export async function postJson<T>(path: string, payload: unknown): Promise<ApiResponse<T>> {
+type RequestOptions = {
+  accessToken?: string;
+  payload?: unknown;
+};
+
+export class ApiError extends Error {
+  readonly status: number;
+  readonly code: string;
+
+  constructor(status: number, code: string, message: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+  }
+}
+
+export async function getJson<T>(path: string, options: RequestOptions = {}): Promise<ApiResponse<T>> {
+  return requestJson<T>(path, "GET", options);
+}
+
+export async function postJson<T>(path: string, payload?: unknown, options: RequestOptions = {}): Promise<ApiResponse<T>> {
+  return requestJson<T>(path, "POST", { ...options, payload });
+}
+
+async function requestJson<T>(path: string, method: "GET" | "POST", options: RequestOptions): Promise<ApiResponse<T>> {
+  const headers = new Headers();
+
+  if (options.payload !== undefined) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  if (options.accessToken) {
+    headers.set("Authorization", `Bearer ${options.accessToken}`);
+  }
+
   const response = await fetch(path, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(payload)
+    method,
+    headers,
+    body: options.payload === undefined ? undefined : JSON.stringify(options.payload)
   });
 
   const body = (await response.json()) as ApiResponse<T>;
 
   if (!response.ok) {
-    throw new Error(body.message || `Request failed with status ${response.status}`);
+    throw new ApiError(response.status, body.code, body.message || `Request failed with status ${response.status}`);
   }
 
   return body;

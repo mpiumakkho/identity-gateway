@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { postJson } from "../../api/client";
+import { ApiError, postJson } from "../../api/client";
 import type { AuthSession } from "../auth/types";
 
 type MethodId = "DIP_CHIP" | "MANUAL_ENTRY";
@@ -20,10 +20,11 @@ const workflowSteps = ["Method", "Identity", "DOPA", "Summary"];
 
 type VerificationShellProps = {
   operator: AuthSession;
+  onSessionExpired: () => void;
   onSignOut: () => void;
 };
 
-export function VerificationShell({ operator, onSignOut }: VerificationShellProps) {
+export function VerificationShell({ operator, onSessionExpired, onSignOut }: VerificationShellProps) {
   const [selectedMethod, setSelectedMethod] = useState<MethodId>("DIP_CHIP");
   const [session, setSession] = useState<VerificationSession | null>(null);
   const [error, setError] = useState("");
@@ -35,11 +36,18 @@ export function VerificationShell({ operator, onSignOut }: VerificationShellProp
     setError("");
 
     try {
-      const response = await postJson<VerificationSession>("/api/verification/sessions", {
-        method: selectedMethod
-      });
+      const response = await postJson<VerificationSession>(
+        "/api/verification/sessions",
+        { method: selectedMethod },
+        { accessToken: operator.accessToken }
+      );
       setSession(response.data);
     } catch (err) {
+      if (err instanceof ApiError && err.status === 401) {
+        onSessionExpired();
+        return;
+      }
+
       setError(err instanceof Error ? err.message : "Unable to start verification session.");
     } finally {
       setIsStarting(false);

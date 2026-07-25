@@ -46,4 +46,12 @@ public class AuthService {
                 session.expiresAt()
         );
     }
+
+    public CurrentOperatorResponse currentOperator(AuthenticatedOperator operator) {
+        return CurrentOperatorResponse.from(operator);
+    }
+
+    public void logout(String accessToken) {
+        operatorSessionService.revoke(accessToken);
+    }
 }

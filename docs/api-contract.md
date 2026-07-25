@@ -14,11 +14,17 @@ All application responses use this envelope:
 }
 ```
 
+Protected endpoints require an opaque bearer token:
+
+```http
+Authorization: Bearer <accessToken>
+```
+
 ## System
 
 ### `GET /system/health`
 
-Returns service health for local smoke checks.
+Returns service health for local smoke checks. This endpoint is public.
 
 ## Authentication
 
@@ -51,15 +57,45 @@ Response data:
 
 Invalid credentials return `401` with code `INVALID_CREDENTIALS`.
 
+### `GET /auth/me`
+
+Returns the current operator for a valid bearer token.
+
+Response data:
+
+```json
+{
+  "operatorId": "uuid",
+  "username": "operator",
+  "displayName": "Operations User",
+  "role": "OPERATIONS",
+  "sessionExpiresAt": "2026-07-25T08:00:00Z"
+}
+```
+
+### `POST /auth/logout`
+
+Revokes the current bearer token.
+
+Response data:
+
+```json
+{
+  "signedOut": true
+}
+```
+
+Missing, expired, revoked, or invalid tokens return `401` with code `AUTHENTICATION_REQUIRED`.
+
 ## Verification
 
 ### `GET /verification/methods`
 
-Returns enabled verification intake methods.
+Returns enabled verification intake methods. Requires authentication.
 
 ### `POST /verification/sessions`
 
-Creates and persists a new verification transaction session.
+Creates and persists a new verification transaction session. Requires authentication.
 
 Request:
 

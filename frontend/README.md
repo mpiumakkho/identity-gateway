@@ -19,7 +19,7 @@ npm run build
 
 ## Login Flow
 
-The app starts at the operator login screen. A successful login stores the issued bearer token in `sessionStorage` for the current browser tab and clears it on sign out or expiry.
+The app starts at the operator login screen. A successful login stores the issued bearer token in `sessionStorage` for the current browser tab, sends it as `Authorization: Bearer <token>` for protected API calls, and clears it on sign out or expiry.
 
 ## Notes
 

@@ -1,11 +1,11 @@
 package com.identitygateway.verification;
 
-import com.identitygateway.auth.OperatorUserRepository;
-import com.identitygateway.config.SecurityConfig;
+import com.identitygateway.auth.BearerTokenResolver;
+import com.identitygateway.auth.OperatorSessionService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -14,14 +14,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(SystemController.class)
-@Import(SecurityConfig.class)
+@AutoConfigureMockMvc(addFilters = false)
 class SystemControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
-    private OperatorUserRepository operatorUserRepository;
+    private BearerTokenResolver bearerTokenResolver;
+
+    @MockitoBean
+    private OperatorSessionService operatorSessionService;
 
     @Test
     void healthReturnsServiceStatus() throws Exception {
