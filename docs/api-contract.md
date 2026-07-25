@@ -291,7 +291,7 @@ Response data:
   "createdAt": "2026-07-25T00:00:00Z",
   "identity": {
     "source": "DIP_CHIP",
-    "maskedNationalId": "123******0123",
+    "maskedNationalId": "123******0121",
     "title": "Mr.",
     "firstName": "Somchai",
     "lastName": "Jaidee",
@@ -359,7 +359,7 @@ Request:
 
 ```json
 {
-  "nationalId": "1234567890123",
+  "nationalId": "1234567890121",
   "title": "Mr.",
   "firstName": "Somchai",
   "lastName": "Jaidee",
@@ -374,7 +374,7 @@ Response data:
 {
   "transactionId": "uuid",
   "sessionStatus": "IDENTITY_CAPTURED",
-  "maskedNationalId": "123******0123",
+  "maskedNationalId": "123******0121",
   "title": "Mr.",
   "firstName": "Somchai",
   "lastName": "Jaidee",
@@ -393,7 +393,7 @@ Request:
 
 ```json
 {
-  "nationalId": "1234567890123",
+  "nationalId": "1234567890121",
   "title": "Mr.",
   "firstName": "Somchai",
   "lastName": "Jaidee",
@@ -403,7 +403,7 @@ Request:
   "cardExpiryDate": "2031-01-31",
   "readerName": "ACR39U",
   "readerSerialNumber": "RD-001",
-  "rawPayload": "CID=1234567890123;READER=ACR39U"
+  "rawPayload": "CID=1234567890121;READER=ACR39U"
 }
 ```
 
@@ -413,7 +413,7 @@ Response data:
 {
   "transactionId": "uuid",
   "sessionStatus": "IDENTITY_CAPTURED",
-  "maskedNationalId": "123******0123",
+  "maskedNationalId": "123******0121",
   "title": "Mr.",
   "firstName": "Somchai",
   "lastName": "Jaidee",
@@ -469,7 +469,7 @@ Response data:
   "sessionStatus": "DOPA_VERIFIED",
   "validationStatus": "MATCHED",
   "identitySource": "DIP_CHIP",
-  "maskedNationalId": "123******0123",
+  "maskedNationalId": "123******0121",
   "responseCode": "DOPA-0000",
   "responseMessage": "Citizen identity matched.",
   "consentReference": "CONSENT-001",

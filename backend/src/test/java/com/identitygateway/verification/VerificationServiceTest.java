@@ -282,7 +282,7 @@ class VerificationServiceTest {
 
         assertThat(response.transactionId()).isEqualTo(session.getId());
         assertThat(response.sessionStatus()).isEqualTo("IDENTITY_CAPTURED");
-        assertThat(response.maskedNationalId()).isEqualTo("123******0123");
+        assertThat(response.maskedNationalId()).isEqualTo("123******0121");
         assertThat(response.firstName()).isEqualTo("Somchai");
         assertThat(response.lastName()).isEqualTo("Jaidee");
         assertThat(response.updatedAt()).isNotNull();
@@ -315,7 +315,7 @@ class VerificationServiceTest {
 
         assertThat(response.transactionId()).isEqualTo(session.getId());
         assertThat(response.sessionStatus()).isEqualTo("IDENTITY_CAPTURED");
-        assertThat(response.maskedNationalId()).isEqualTo("123******0123");
+        assertThat(response.maskedNationalId()).isEqualTo("123******0121");
         assertThat(response.readerName()).isEqualTo("ACR39U");
         assertThat(response.readerSerialNumber()).isEqualTo("RD-001");
         assertThat(response.updatedAt()).isNotNull();
@@ -459,7 +459,7 @@ class VerificationServiceTest {
 
     private static ManualIdentityRequest manualRequest() {
         return new ManualIdentityRequest(
-                "1234567890123",
+                "1234567890121",
                 "Mr.",
                 "Somchai",
                 "Jaidee",
@@ -470,7 +470,7 @@ class VerificationServiceTest {
 
     private static DipChipPayloadRequest dipChipRequest() {
         return new DipChipPayloadRequest(
-                "1234567890123",
+                "1234567890121",
                 "Mr.",
                 "Somchai",
                 "Jaidee",
@@ -480,12 +480,12 @@ class VerificationServiceTest {
                 LocalDate.parse("2031-01-31"),
                 "ACR39U",
                 "RD-001",
-                "{\"cid\":\"1234567890123\",\"reader\":\"ACR39U\"}"
+                "{\"cid\":\"1234567890121\",\"reader\":\"ACR39U\"}"
         );
     }
     private static DipChipPayloadRequest dipChipRequestWithInvalidDates() {
         return new DipChipPayloadRequest(
-                "1234567890123",
+                "1234567890121",
                 "Mr.",
                 "Somchai",
                 "Jaidee",
@@ -495,7 +495,7 @@ class VerificationServiceTest {
                 LocalDate.parse("2021-02-01"),
                 "ACR39U",
                 "RD-001",
-                "{\"cid\":\"1234567890123\",\"reader\":\"ACR39U\"}"
+                "{\"cid\":\"1234567890121\",\"reader\":\"ACR39U\"}"
         );
     }
 }

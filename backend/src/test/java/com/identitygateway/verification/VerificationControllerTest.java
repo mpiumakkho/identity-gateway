@@ -250,7 +250,7 @@ class VerificationControllerTest {
         ManualIdentityResponse response = new ManualIdentityResponse(
                 transactionId,
                 "IDENTITY_CAPTURED",
-                "123******0123",
+                "123******0121",
                 "Mr.",
                 "Somchai",
                 "Jaidee",
@@ -263,7 +263,7 @@ class VerificationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "nationalId": "1234567890123",
+                                  "nationalId": "1234567890121",
                                   "title": "Mr.",
                                   "firstName": "Somchai",
                                   "lastName": "Jaidee",
@@ -275,7 +275,7 @@ class VerificationControllerTest {
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.data.transactionId").value(transactionId.toString()))
                 .andExpect(jsonPath("$.data.sessionStatus").value("IDENTITY_CAPTURED"))
-                .andExpect(jsonPath("$.data.maskedNationalId").value("123******0123"))
+                .andExpect(jsonPath("$.data.maskedNationalId").value("123******0121"))
                 .andExpect(jsonPath("$.data.firstName").value("Somchai"))
                 .andExpect(jsonPath("$.data.laserCode").doesNotExist());
     }
@@ -303,13 +303,35 @@ class VerificationControllerTest {
     }
 
     @Test
+    void saveManualIdentityRejectsInvalidNationalIdChecksum() throws Exception {
+        UUID transactionId = UUID.fromString("b9d38258-8ec4-4645-a6ca-e901e1c1766a");
+
+        mockMvc.perform(put("/api/verification/sessions/{transactionId}/manual-identity", transactionId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "nationalId": "1234567890123",
+                                  "title": "Mr.",
+                                  "firstName": "Somchai",
+                                  "lastName": "Jaidee",
+                                  "dateOfBirth": "1990-01-31",
+                                  "laserCode": "JT1234567890"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("error"))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message", not(blankOrNullString())));
+    }
+
+    @Test
     void saveDipChipPayloadReturnsCapturedIdentity() throws Exception {
         setAuthenticatedOperator();
         UUID transactionId = UUID.fromString("b9d38258-8ec4-4645-a6ca-e901e1c1766a");
         DipChipPayloadResponse response = new DipChipPayloadResponse(
                 transactionId,
                 "IDENTITY_CAPTURED",
-                "123******0123",
+                "123******0121",
                 "Mr.",
                 "Somchai",
                 "Jaidee",
@@ -326,7 +348,7 @@ class VerificationControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "nationalId": "1234567890123",
+                                  "nationalId": "1234567890121",
                                   "title": "Mr.",
                                   "firstName": "Somchai",
                                   "lastName": "Jaidee",
@@ -336,14 +358,14 @@ class VerificationControllerTest {
                                   "cardExpiryDate": "2031-01-31",
                                   "readerName": "ACR39U",
                                   "readerSerialNumber": "RD-001",
-                                  "rawPayload": "CID=1234567890123;READER=ACR39U"
+                                  "rawPayload": "CID=1234567890121;READER=ACR39U"
                                 }
                                 """))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("success"))
                 .andExpect(jsonPath("$.data.transactionId").value(transactionId.toString()))
                 .andExpect(jsonPath("$.data.sessionStatus").value("IDENTITY_CAPTURED"))
-                .andExpect(jsonPath("$.data.maskedNationalId").value("123******0123"))
+                .andExpect(jsonPath("$.data.maskedNationalId").value("123******0121"))
                 .andExpect(jsonPath("$.data.readerSerialNumber").value("RD-001"))
                 .andExpect(jsonPath("$.data.laserCode").doesNotExist())
                 .andExpect(jsonPath("$.data.rawPayload").doesNotExist());
@@ -431,6 +453,33 @@ class VerificationControllerTest {
                 .andExpect(jsonPath("$.message", not(blankOrNullString())));
     }
 
+    @Test
+    void saveDipChipPayloadRejectsInvalidNationalIdChecksum() throws Exception {
+        UUID transactionId = UUID.fromString("b9d38258-8ec4-4645-a6ca-e901e1c1766a");
+
+        mockMvc.perform(put("/api/verification/sessions/{transactionId}/dip-chip-payload", transactionId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "nationalId": "1234567890123",
+                                  "title": "Mr.",
+                                  "firstName": "Somchai",
+                                  "lastName": "Jaidee",
+                                  "dateOfBirth": "1990-01-31",
+                                  "laserCode": "JT1234567890",
+                                  "cardIssueDate": "2021-02-01",
+                                  "cardExpiryDate": "2031-01-31",
+                                  "readerName": "ACR39U",
+                                  "readerSerialNumber": "RD-001",
+                                  "rawPayload": "{}"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("error"))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message", not(blankOrNullString())));
+    }
+
     private static VerificationSessionDetailResponse sessionDetailResponse() {
         return new VerificationSessionDetailResponse(
                 UUID.fromString("b9d38258-8ec4-4645-a6ca-e901e1c1766a"),
@@ -444,7 +493,7 @@ class VerificationControllerTest {
                 Instant.parse("2026-07-25T00:00:00Z"),
                 new VerificationIdentitySummaryResponse(
                         "DIP_CHIP",
-                        "123******0123",
+                        "123******0121",
                         "Mr.",
                         "Somchai",
                         "Jaidee",

@@ -49,7 +49,7 @@ class DopaValidationControllerTest {
                 "DOPA_VERIFIED",
                 "MATCHED",
                 "DIP_CHIP",
-                "123******0123",
+                "123******0121",
                 "DOPA-0000",
                 "Citizen identity matched.",
                 "CONSENT-001",
@@ -64,7 +64,7 @@ class DopaValidationControllerTest {
                 .andExpect(jsonPath("$.data.transactionId").value(transactionId.toString()))
                 .andExpect(jsonPath("$.data.sessionStatus").value("DOPA_VERIFIED"))
                 .andExpect(jsonPath("$.data.validationStatus").value("MATCHED"))
-                .andExpect(jsonPath("$.data.maskedNationalId").value("123******0123"))
+                .andExpect(jsonPath("$.data.maskedNationalId").value("123******0121"))
                 .andExpect(jsonPath("$.data.responseCode").value("DOPA-0000"))
                 .andExpect(jsonPath("$.data.nationalId").doesNotExist())
                 .andExpect(jsonPath("$.data.laserCode").doesNotExist());

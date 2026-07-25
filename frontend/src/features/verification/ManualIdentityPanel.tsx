@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { ApiError, putJson } from "../../api/client";
 import { fieldInputClassName, fieldLabelClassName } from "./formStyles";
+import { nationalIdValidationMessage } from "./nationalId";
 import type { ManualIdentityPayload, ManualIdentityResult, VerificationSession } from "./types";
 
 const emptyForm: ManualIdentityPayload = {
@@ -49,8 +50,9 @@ export function ManualIdentityPanel({ accessToken, session, onError, onSaved, on
 
     const payload = trimPayload(form);
 
-    if (!/^\d{13}$/.test(payload.nationalId)) {
-      setLocalMessage("National ID must contain 13 digits.");
+    const nationalIdMessage = nationalIdValidationMessage(payload.nationalId);
+    if (nationalIdMessage) {
+      setLocalMessage(nationalIdMessage);
       return;
     }
 

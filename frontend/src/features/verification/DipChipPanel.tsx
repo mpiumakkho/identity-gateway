@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { ApiError, putJson } from "../../api/client";
 import { fieldInputClassName, fieldLabelClassName, fieldTextAreaClassName } from "./formStyles";
+import { nationalIdValidationMessage } from "./nationalId";
 import type { DipChipPayload, DipChipPayloadResult, VerificationSession } from "./types";
 
 const emptyForm: DipChipPayload = {
@@ -285,8 +286,9 @@ function trimPayload(payload: DipChipPayload): DipChipPayload {
 }
 
 function validatePayload(payload: DipChipPayload) {
-  if (!/^\d{13}$/.test(payload.nationalId)) {
-    return "National ID must contain 13 digits.";
+  const nationalIdMessage = nationalIdValidationMessage(payload.nationalId);
+  if (nationalIdMessage) {
+    return nationalIdMessage;
   }
 
   if (payload.cardIssueDate && payload.cardExpiryDate && payload.cardExpiryDate < payload.cardIssueDate) {

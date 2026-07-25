@@ -88,7 +88,7 @@ class DopaValidationServiceTest {
         assertThat(response.sessionStatus()).isEqualTo("DOPA_VERIFIED");
         assertThat(response.validationStatus()).isEqualTo("MATCHED");
         assertThat(response.identitySource()).isEqualTo("MANUAL_ENTRY");
-        assertThat(response.maskedNationalId()).isEqualTo("123******0123");
+        assertThat(response.maskedNationalId()).isEqualTo("123******0121");
         assertThat(response.consentReference()).isEqualTo("CONSENT-001");
         assertThat(response.validatedAt()).isNotNull();
     }
@@ -156,7 +156,7 @@ class DopaValidationServiceTest {
 
     private static ManualIdentityEntry manualIdentity(VerificationSessionEntity session) {
         return ManualIdentityEntry.create(session, new ManualIdentityRequest(
-                "1234567890123",
+                "1234567890121",
                 "Mr.",
                 "Somchai",
                 "Jaidee",
@@ -167,7 +167,7 @@ class DopaValidationServiceTest {
 
     private static DipChipIdentityEntry dipChipIdentity(VerificationSessionEntity session) {
         return DipChipIdentityEntry.create(session, new DipChipPayloadRequest(
-                "1234567890123",
+                "1234567890121",
                 "Mr.",
                 "Somchai",
                 "Jaidee",
@@ -177,7 +177,7 @@ class DopaValidationServiceTest {
                 LocalDate.parse("2031-01-31"),
                 "ACR39U",
                 "RD-001",
-                "CID=1234567890123;READER=ACR39U"
+                "CID=1234567890121;READER=ACR39U"
         ));
     }
 }

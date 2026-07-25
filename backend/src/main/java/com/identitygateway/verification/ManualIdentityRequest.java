@@ -1,16 +1,16 @@
 package com.identitygateway.verification;
 
+import com.identitygateway.identity.NationalId;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
-import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 
 import java.time.LocalDate;
 
 public record ManualIdentityRequest(
         @NotBlank
-        @Pattern(regexp = "\\d{13}", message = "must contain 13 digits")
+        @NationalId
         String nationalId,
 
         @NotBlank
