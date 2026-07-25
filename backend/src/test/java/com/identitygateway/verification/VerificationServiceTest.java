@@ -1,12 +1,20 @@
 package com.identitygateway.verification;
 
+import com.identitygateway.auth.AuthenticatedOperator;
+import com.identitygateway.auth.OperatorRole;
+import com.identitygateway.auth.OperatorUser;
+import com.identitygateway.auth.OperatorUserRepository;
+import com.identitygateway.common.error.ResourceNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -19,11 +27,14 @@ class VerificationServiceTest {
     @Mock
     private VerificationSessionRepository verificationSessionRepository;
 
+    @Mock
+    private OperatorUserRepository operatorUserRepository;
+
     private VerificationService verificationService;
 
     @BeforeEach
     void setUp() {
-        verificationService = new VerificationService(verificationSessionRepository);
+        verificationService = new VerificationService(verificationSessionRepository, operatorUserRepository);
     }
 
     @Test
@@ -36,7 +47,44 @@ class VerificationServiceTest {
     }
 
     @Test
-    void startSessionPersistsCreatedSession() {
+    void recentSessionsReturnsLatestTransactions() {
+        VerificationSessionEntity entity = sessionEntity();
+        when(verificationSessionRepository.findTop20ByOrderByCreatedAtDesc()).thenReturn(List.of(entity));
+
+        List<VerificationSessionResponse> responses = verificationService.recentSessions();
+
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).transactionId()).isEqualTo(entity.getId());
+        assertThat(responses.get(0).createdBy().username()).isEqualTo("operator");
+    }
+
+    @Test
+    void sessionReturnsTransactionDetail() {
+        VerificationSessionEntity entity = sessionEntity();
+        when(verificationSessionRepository.findDetailById(entity.getId())).thenReturn(Optional.of(entity));
+
+        VerificationSessionResponse response = verificationService.session(entity.getId());
+
+        assertThat(response.transactionId()).isEqualTo(entity.getId());
+        assertThat(response.method()).isEqualTo("DIP_CHIP");
+        assertThat(response.status()).isEqualTo("CREATED");
+    }
+
+    @Test
+    void sessionRejectsUnknownTransactionId() {
+        UUID transactionId = UUID.fromString("15e8023f-7d03-4287-ac9c-73d80ac9af67");
+        when(verificationSessionRepository.findDetailById(transactionId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> verificationService.session(transactionId))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Verification session not found.");
+    }
+
+    @Test
+    void startSessionPersistsCreatedSessionForOperator() {
+        AuthenticatedOperator authenticatedOperator = authenticatedOperator();
+        OperatorUser operator = OperatorUser.create("operator", "hash", "Operations User", OperatorRole.OPERATIONS);
+        when(operatorUserRepository.getReferenceById(authenticatedOperator.operatorId())).thenReturn(operator);
         when(verificationSessionRepository.save(any(VerificationSessionEntity.class)))
                 .thenAnswer(invocation -> {
                     VerificationSessionEntity entity = invocation.getArgument(0);
@@ -44,18 +92,36 @@ class VerificationServiceTest {
                     return entity;
                 });
 
-        VerificationSessionResponse response = verificationService.startSession(new StartVerificationRequest("DIP_CHIP"));
+        VerificationSessionResponse response = verificationService.startSession(authenticatedOperator, new StartVerificationRequest("DIP_CHIP"));
 
         assertThat(response.transactionId()).isNotNull();
         assertThat(response.method()).isEqualTo("DIP_CHIP");
         assertThat(response.status()).isEqualTo("CREATED");
+        assertThat(response.createdBy().username()).isEqualTo("operator");
         assertThat(response.createdAt()).isNotNull();
     }
 
     @Test
     void startSessionRejectsUnsupportedMethod() {
-        assertThatThrownBy(() -> verificationService.startSession(new StartVerificationRequest("VIDEO_CALL")))
+        assertThatThrownBy(() -> verificationService.startSession(authenticatedOperator(), new StartVerificationRequest("VIDEO_CALL")))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Unsupported verification method: VIDEO_CALL");
+    }
+
+    private static VerificationSessionEntity sessionEntity() {
+        OperatorUser operator = OperatorUser.create("operator", "hash", "Operations User", OperatorRole.OPERATIONS);
+        VerificationSessionEntity entity = VerificationSessionEntity.create(VerificationMethod.DIP_CHIP, operator);
+        entity.prePersist();
+        return entity;
+    }
+
+    private static AuthenticatedOperator authenticatedOperator() {
+        return new AuthenticatedOperator(
+                UUID.fromString("9e04e2eb-d74a-4d55-987c-f38660aa3060"),
+                "operator",
+                "Operations User",
+                OperatorRole.OPERATIONS,
+                Instant.parse("2026-07-25T08:00:00Z")
+        );
     }
 }

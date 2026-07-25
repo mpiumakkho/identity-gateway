@@ -58,6 +58,8 @@ BOOTSTRAP_OPERATOR_ROLE=OPERATIONS
 - `GET /api/system/health`
 - `POST /api/auth/login`
 - `GET /api/verification/methods`
+- `GET /api/verification/sessions`
+- `GET /api/verification/sessions/{transactionId}`
 - `POST /api/verification/sessions`
 
 ## Security Notes

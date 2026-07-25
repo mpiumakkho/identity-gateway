@@ -93,9 +93,35 @@ Missing, expired, revoked, or invalid tokens return `401` with code `AUTHENTICAT
 
 Returns enabled verification intake methods. Requires authentication.
 
+### `GET /verification/sessions`
+
+Returns the latest 20 persisted verification sessions. Requires authentication.
+
+Response data:
+
+```json
+[
+  {
+    "transactionId": "uuid",
+    "method": "DIP_CHIP",
+    "status": "CREATED",
+    "createdBy": {
+      "operatorId": "uuid",
+      "username": "operator",
+      "displayName": "Operations User"
+    },
+    "createdAt": "2026-07-25T00:00:00Z"
+  }
+]
+```
+
+### `GET /verification/sessions/{transactionId}`
+
+Returns one verification session by transaction ID. Requires authentication. Unknown IDs return `404` with code `NOT_FOUND`.
+
 ### `POST /verification/sessions`
 
-Creates and persists a new verification transaction session. Requires authentication.
+Creates and persists a new verification transaction session for the authenticated operator. Requires authentication.
 
 Request:
 
@@ -112,6 +138,11 @@ Response data:
   "transactionId": "uuid",
   "method": "DIP_CHIP",
   "status": "CREATED",
+  "createdBy": {
+    "operatorId": "uuid",
+    "username": "operator",
+    "displayName": "Operations User"
+  },
   "createdAt": "2026-07-25T00:00:00Z"
 }
 ```

@@ -1,13 +1,20 @@
-import { useState } from "react";
-import { ApiError, postJson } from "../../api/client";
+import { useEffect, useState } from "react";
+import { ApiError, getJson, postJson } from "../../api/client";
 import type { AuthSession } from "../auth/types";
 
 type MethodId = "DIP_CHIP" | "MANUAL_ENTRY";
+
+type SessionOperator = {
+  operatorId: string;
+  username: string;
+  displayName: string;
+};
 
 type VerificationSession = {
   transactionId: string;
   method: MethodId;
   status: string;
+  createdBy: SessionOperator | null;
   createdAt: string;
 };
 
@@ -26,10 +33,57 @@ type VerificationShellProps = {
 
 export function VerificationShell({ operator, onSessionExpired, onSignOut }: VerificationShellProps) {
   const [selectedMethod, setSelectedMethod] = useState<MethodId>("DIP_CHIP");
-  const [session, setSession] = useState<VerificationSession | null>(null);
+  const [sessions, setSessions] = useState<VerificationSession[]>([]);
+  const [activeSession, setActiveSession] = useState<VerificationSession | null>(null);
   const [error, setError] = useState("");
   const [isStarting, setIsStarting] = useState(false);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(true);
+  const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const operatorInitials = (operator.displayName || operator.username).slice(0, 2).toUpperCase();
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadRecentSessions() {
+      setIsLoadingSessions(true);
+      setError("");
+
+      try {
+        const response = await getJson<VerificationSession[]>("/api/verification/sessions", {
+          accessToken: operator.accessToken
+        });
+
+        if (!cancelled) {
+          const nextSessions = response.data ?? [];
+          setSessions(nextSessions);
+          setActiveSession((current) => current ?? nextSessions[0] ?? null);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          handleApiError(err, "Unable to load verification sessions.");
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingSessions(false);
+        }
+      }
+    }
+
+    void loadRecentSessions();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [operator.accessToken]);
+
+  function handleApiError(err: unknown, fallback: string) {
+    if (err instanceof ApiError && err.status === 401) {
+      onSessionExpired();
+      return;
+    }
+
+    setError(err instanceof Error ? err.message : fallback);
+  }
 
   async function startSession() {
     setIsStarting(true);
@@ -41,17 +95,40 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
         { method: selectedMethod },
         { accessToken: operator.accessToken }
       );
-      setSession(response.data);
-    } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
-        onSessionExpired();
-        return;
-      }
 
-      setError(err instanceof Error ? err.message : "Unable to start verification session.");
+      if (response.data) {
+        setActiveSession(response.data);
+        setSessions((current) => [response.data as VerificationSession, ...current.filter((session) => session.transactionId !== response.data?.transactionId)]);
+      }
+    } catch (err) {
+      handleApiError(err, "Unable to start verification session.");
     } finally {
       setIsStarting(false);
     }
+  }
+
+  async function openSession(transactionId: string) {
+    setIsLoadingDetail(true);
+    setError("");
+
+    try {
+      const response = await getJson<VerificationSession>(`/api/verification/sessions/${transactionId}`, {
+        accessToken: operator.accessToken
+      });
+
+      if (response.data) {
+        setActiveSession(response.data);
+        setSessions((current) => current.map((session) => (session.transactionId === transactionId ? response.data as VerificationSession : session)));
+      }
+    } catch (err) {
+      handleApiError(err, "Unable to load verification session.");
+    } finally {
+      setIsLoadingDetail(false);
+    }
+  }
+
+  function methodLabel(method: MethodId) {
+    return methods.find((item) => item.id === method)?.label ?? method;
   }
 
   return (
@@ -140,6 +217,12 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
             ))}
           </div>
 
+          {error && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" role="alert">
+              {error}
+            </div>
+          )}
+
           <div className="grid gap-5 xl:grid-cols-[minmax(340px,520px)_1fr]">
             <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="method-title">
               <div className="mb-5 flex gap-3">
@@ -170,7 +253,7 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
                         <span className="text-sm text-slate-500">{method.detail}</span>
                       </span>
                       <span className={selected ? "grid size-5 place-items-center rounded-full bg-teal-600" : "size-5 rounded-full border border-slate-300"}>
-                        {selected && <span className="size-2 rounded-full bg-white" />}
+                        {selected ? <span className="size-2 rounded-full bg-white" /> : null}
                       </span>
                     </button>
                   );
@@ -188,39 +271,40 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
             </section>
 
             <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="status-title">
-              <div className="mb-5 flex gap-3">
-                <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-slate-100 text-sm font-black text-slate-700">02</span>
-                <div>
-                  <h2 id="status-title" className="text-xl font-bold text-slate-950">Session Status</h2>
-                  <p className="mt-1 text-sm text-slate-500">Current transaction state.</p>
+              <div className="mb-5 flex items-start justify-between gap-3">
+                <div className="flex gap-3">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-slate-100 text-sm font-black text-slate-700">02</span>
+                  <div>
+                    <h2 id="status-title" className="text-xl font-bold text-slate-950">Session Detail</h2>
+                    <p className="mt-1 text-sm text-slate-500">Current transaction state.</p>
+                  </div>
                 </div>
+                {isLoadingDetail ? <span className="text-xs font-semibold text-slate-400">Loading</span> : null}
               </div>
 
-              {error && (
-                <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                  {error}
-                </div>
-              )}
-
-              {session ? (
+              {activeSession ? (
                 <dl className="grid gap-4">
                   <div className="border-b border-slate-100 pb-4">
                     <dt className="text-xs font-bold uppercase text-slate-400">Transaction ID</dt>
-                    <dd className="mt-1 break-all text-sm font-semibold text-slate-950">{session.transactionId}</dd>
+                    <dd className="mt-1 break-all text-sm font-semibold text-slate-950">{activeSession.transactionId}</dd>
                   </div>
                   <div className="grid gap-4 border-b border-slate-100 pb-4 sm:grid-cols-3">
                     <div>
                       <dt className="text-xs font-bold uppercase text-slate-400">Method</dt>
-                      <dd className="mt-1 text-sm font-semibold text-slate-950">{session.method}</dd>
+                      <dd className="mt-1 text-sm font-semibold text-slate-950">{methodLabel(activeSession.method)}</dd>
                     </div>
                     <div>
                       <dt className="text-xs font-bold uppercase text-slate-400">Status</dt>
-                      <dd className="mt-1 text-sm font-semibold text-teal-700">{session.status}</dd>
+                      <dd className="mt-1 text-sm font-semibold text-teal-700">{activeSession.status}</dd>
                     </div>
                     <div>
                       <dt className="text-xs font-bold uppercase text-slate-400">Created</dt>
-                      <dd className="mt-1 text-sm font-semibold text-slate-950">{new Date(session.createdAt).toLocaleString()}</dd>
+                      <dd className="mt-1 text-sm font-semibold text-slate-950">{new Date(activeSession.createdAt).toLocaleString()}</dd>
                     </div>
+                  </div>
+                  <div>
+                    <dt className="text-xs font-bold uppercase text-slate-400">Created By</dt>
+                    <dd className="mt-1 text-sm font-semibold text-slate-950">{activeSession.createdBy?.displayName ?? "Unknown operator"}</dd>
                   </div>
                 </dl>
               ) : (
@@ -233,6 +317,55 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
               )}
             </section>
           </div>
+
+          <section className="mt-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm" id="transactions" aria-labelledby="transactions-title">
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 id="transactions-title" className="text-xl font-bold text-slate-950">Recent Transactions</h2>
+                <p className="mt-1 text-sm text-slate-500">Latest persisted verification sessions.</p>
+              </div>
+              <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">{sessions.length}</span>
+            </div>
+
+            {isLoadingSessions ? (
+              <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm font-medium text-slate-500">Loading sessions...</div>
+            ) : sessions.length > 0 ? (
+              <div className="overflow-hidden rounded-lg border border-slate-200">
+                <div className="grid grid-cols-[1fr_120px_150px] bg-slate-50 px-4 py-2 text-xs font-bold uppercase text-slate-400 max-md:hidden">
+                  <span>Transaction</span>
+                  <span>Status</span>
+                  <span>Created</span>
+                </div>
+                <div className="divide-y divide-slate-100">
+                  {sessions.map((session) => {
+                    const selected = activeSession?.transactionId === session.transactionId;
+
+                    return (
+                      <button
+                        key={session.transactionId}
+                        className={
+                          selected
+                            ? "grid w-full gap-2 bg-teal-50 px-4 py-3 text-left md:grid-cols-[1fr_120px_150px]"
+                            : "grid w-full gap-2 bg-white px-4 py-3 text-left transition hover:bg-slate-50 md:grid-cols-[1fr_120px_150px]"
+                        }
+                        type="button"
+                        onClick={() => void openSession(session.transactionId)}
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-bold text-slate-950">{methodLabel(session.method)}</span>
+                          <span className="mt-1 block truncate text-xs text-slate-500">{session.transactionId}</span>
+                        </span>
+                        <span className="text-sm font-semibold text-teal-700">{session.status}</span>
+                        <span className="text-sm text-slate-500">{new Date(session.createdAt).toLocaleDateString()}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm font-medium text-slate-500">No transactions yet.</div>
+            )}
+          </section>
         </section>
       </div>
     </main>

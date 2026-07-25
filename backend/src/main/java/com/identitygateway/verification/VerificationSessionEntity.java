@@ -41,13 +41,14 @@ public class VerificationSessionEntity {
     protected VerificationSessionEntity() {
     }
 
-    private VerificationSessionEntity(VerificationMethod method, VerificationStatus status) {
+    private VerificationSessionEntity(VerificationMethod method, VerificationStatus status, OperatorUser createdBy) {
         this.method = method;
         this.status = status;
+        this.createdBy = createdBy;
     }
 
-    public static VerificationSessionEntity create(VerificationMethod method) {
-        return new VerificationSessionEntity(method, VerificationStatus.CREATED);
+    public static VerificationSessionEntity create(VerificationMethod method, OperatorUser createdBy) {
+        return new VerificationSessionEntity(method, VerificationStatus.CREATED, createdBy);
     }
 
     @PrePersist

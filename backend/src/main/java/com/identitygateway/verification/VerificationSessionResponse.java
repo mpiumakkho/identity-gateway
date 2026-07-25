@@ -7,6 +7,7 @@ public record VerificationSessionResponse(
         UUID transactionId,
         String method,
         String status,
+        SessionOperatorResponse createdBy,
         Instant createdAt
 ) {
 }
