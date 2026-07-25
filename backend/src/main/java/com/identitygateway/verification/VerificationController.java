@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -34,8 +35,11 @@ public class VerificationController {
     }
 
     @GetMapping("/sessions")
-    public ApiResponse<List<VerificationSessionResponse>> sessions() {
-        return ApiResponse.ok(verificationService.recentSessions());
+    public ApiResponse<List<VerificationSessionResponse>> sessions(
+            @RequestParam(required = false) String method,
+            @RequestParam(required = false) String status
+    ) {
+        return ApiResponse.ok(verificationService.recentSessions(method, status));
     }
 
     @GetMapping("/sessions/{transactionId}")

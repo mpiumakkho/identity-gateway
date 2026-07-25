@@ -79,13 +79,25 @@ class VerificationControllerTest {
 
     @Test
     void sessionsReturnsRecentTransactions() throws Exception {
-        when(verificationService.recentSessions()).thenReturn(List.of(sessionResponse()));
+        when(verificationService.recentSessions(null, null)).thenReturn(List.of(sessionResponse()));
 
         mockMvc.perform(get("/api/verification/sessions"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data", hasSize(1)))
                 .andExpect(jsonPath("$.data[0].transactionId").value("b9d38258-8ec4-4645-a6ca-e901e1c1766a"))
                 .andExpect(jsonPath("$.data[0].createdBy.username").value("operator"));
+    }
+
+    @Test
+    void sessionsPassesFiltersToService() throws Exception {
+        when(verificationService.recentSessions("DIP_CHIP", "DOPA_VERIFIED")).thenReturn(List.of(sessionResponse()));
+
+        mockMvc.perform(get("/api/verification/sessions")
+                        .param("method", "DIP_CHIP")
+                        .param("status", "DOPA_VERIFIED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data", hasSize(1)))
+                .andExpect(jsonPath("$.data[0].method").value("DIP_CHIP"));
     }
 
     @Test

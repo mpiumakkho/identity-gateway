@@ -11,6 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Pageable;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -21,6 +22,9 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -70,13 +74,35 @@ class VerificationServiceTest {
     @Test
     void recentSessionsReturnsLatestTransactions() {
         VerificationSessionEntity entity = sessionEntity(VerificationMethod.DIP_CHIP);
-        when(verificationSessionRepository.findTop20ByOrderByCreatedAtDesc()).thenReturn(List.of(entity));
+        when(verificationSessionRepository.findRecent(isNull(), isNull(), any(Pageable.class))).thenReturn(List.of(entity));
 
         List<VerificationSessionResponse> responses = verificationService.recentSessions();
 
         assertThat(responses).hasSize(1);
         assertThat(responses.get(0).transactionId()).isEqualTo(entity.getId());
         assertThat(responses.get(0).createdBy().username()).isEqualTo("operator");
+    }
+
+    @Test
+    void recentSessionsAppliesMethodAndStatusFilters() {
+        VerificationSessionEntity entity = sessionEntity(VerificationMethod.DIP_CHIP);
+        entity.markIdentityCaptured();
+        entity.markDopaVerified();
+        when(verificationSessionRepository.findRecent(eq(VerificationMethod.DIP_CHIP), eq(VerificationStatus.DOPA_VERIFIED), any(Pageable.class)))
+                .thenReturn(List.of(entity));
+
+        List<VerificationSessionResponse> responses = verificationService.recentSessions("DIP_CHIP", "DOPA_VERIFIED");
+
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).status()).isEqualTo("DOPA_VERIFIED");
+        verify(verificationSessionRepository).findRecent(eq(VerificationMethod.DIP_CHIP), eq(VerificationStatus.DOPA_VERIFIED), any(Pageable.class));
+    }
+
+    @Test
+    void recentSessionsRejectsUnsupportedStatusFilter() {
+        assertThatThrownBy(() -> verificationService.recentSessions(null, "DONE"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Unsupported verification status: DONE");
     }
 
     @Test

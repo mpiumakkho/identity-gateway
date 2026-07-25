@@ -9,7 +9,7 @@ The backend exposes REST APIs under `/api`. Controllers stay thin and delegate b
 Current backend modules:
 
 - `auth`: operator login, user repository, BCrypt password verification
-- `verification`: verification method catalog, persisted session creation, manual identity capture, Dip Chip payload intake, and decision closeout
+- `verification`: verification method catalog, persisted session creation, transaction inquiry, manual identity capture, Dip Chip payload intake, and decision closeout
 - `dopa`: citizen registry validation, result persistence, and audit-safe response mapping
 - `audit`: persisted operator and transaction audit timeline
 - `config`: CORS and Spring Security configuration
@@ -42,6 +42,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 6. DOPA flow: citizen registry validation request, response mapping, and verified/rejected session status. Done with a local connector placeholder until partner integration details are configured.
 7. Summary flow: verification decision and transaction closeout. Done with persisted operator decision records.
 8. Audit flow: operator and transaction event timeline. Done with persisted audit events and a transaction timeline view.
+9. Transaction inquiry flow: method and status filtering for persisted verification sessions. Done with backend query filters and console controls.
 
 ## Data Handling
 

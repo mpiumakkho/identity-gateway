@@ -7,6 +7,7 @@ import com.identitygateway.audit.AuditEventResponse;
 import com.identitygateway.audit.AuditEventType;
 import com.identitygateway.audit.AuditService;
 import com.identitygateway.common.error.ResourceNotFoundException;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,11 +53,18 @@ public class VerificationService {
 
     @Transactional(readOnly = true)
     public List<VerificationSessionResponse> recentSessions() {
-        return verificationSessionRepository.findTop20ByOrderByCreatedAtDesc().stream()
+        return recentSessions(null, null);
+    }
+
+    @Transactional(readOnly = true)
+    public List<VerificationSessionResponse> recentSessions(String method, String status) {
+        VerificationMethod methodFilter = parseMethodFilter(method);
+        VerificationStatus statusFilter = parseStatusFilter(status);
+
+        return verificationSessionRepository.findRecent(methodFilter, statusFilter, PageRequest.of(0, 20)).stream()
                 .map(this::toResponse)
                 .toList();
     }
-
     @Transactional(readOnly = true)
     public VerificationSessionResponse session(UUID transactionId) {
         return toResponse(requireSession(transactionId));
@@ -166,6 +174,26 @@ public class VerificationService {
     private static void requireValidCardDates(DipChipPayloadRequest request) {
         if (request.cardExpiryDate().isBefore(request.cardIssueDate())) {
             throw new IllegalArgumentException("Card expiry date must be on or after the issue date.");
+        }
+    }
+
+    private static VerificationMethod parseMethodFilter(String method) {
+        if (method == null || method.isBlank()) {
+            return null;
+        }
+
+        return VerificationMethod.from(method);
+    }
+
+    private static VerificationStatus parseStatusFilter(String status) {
+        if (status == null || status.isBlank()) {
+            return null;
+        }
+
+        try {
+            return VerificationStatus.valueOf(status.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Unsupported verification status: " + status, ex);
         }
     }
 

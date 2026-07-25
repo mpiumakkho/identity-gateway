@@ -1,5 +1,6 @@
 package com.identitygateway.verification;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -14,6 +15,18 @@ public interface VerificationSessionRepository extends JpaRepository<Verificatio
     @EntityGraph(attributePaths = "createdBy")
     List<VerificationSessionEntity> findTop20ByOrderByCreatedAtDesc();
 
+    @EntityGraph(attributePaths = "createdBy")
+    @Query("""
+            select session from VerificationSessionEntity session
+            where (:method is null or session.method = :method)
+              and (:status is null or session.status = :status)
+            order by session.createdAt desc
+            """)
+    List<VerificationSessionEntity> findRecent(
+            @Param("method") VerificationMethod method,
+            @Param("status") VerificationStatus status,
+            Pageable pageable
+    );
     @EntityGraph(attributePaths = "createdBy")
     @Query("select session from VerificationSessionEntity session where session.id = :id")
     Optional<VerificationSessionEntity> findDetailById(@Param("id") UUID id);

@@ -95,7 +95,7 @@ Returns enabled verification intake methods. Requires authentication.
 
 ### `GET /verification/sessions`
 
-Returns the latest 20 persisted verification sessions. Requires authentication.
+Returns the latest 20 persisted verification sessions. Requires authentication. Optional query parameters: `method` (`DIP_CHIP`, `MANUAL_ENTRY`) and `status` (`CREATED`, `IDENTITY_CAPTURED`, `DOPA_VERIFIED`, `DOPA_REJECTED`, `APPROVED`, `REJECTED`).
 
 Response data:
 

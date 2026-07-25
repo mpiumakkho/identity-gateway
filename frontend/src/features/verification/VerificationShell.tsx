@@ -13,6 +13,8 @@ const methods: Array<{ id: MethodId; label: string; detail: string }> = [
   { id: "MANUAL_ENTRY", label: "Manual Entry", detail: "Controlled form" }
 ];
 
+const statusFilters = ["CREATED", "IDENTITY_CAPTURED", "DOPA_VERIFIED", "DOPA_REJECTED", "APPROVED", "REJECTED"];
+
 const workflowSteps = ["Method", "Identity", "DOPA", "Summary"];
 
 type VerificationShellProps = {
@@ -23,6 +25,8 @@ type VerificationShellProps = {
 
 export function VerificationShell({ operator, onSessionExpired, onSignOut }: VerificationShellProps) {
   const [selectedMethod, setSelectedMethod] = useState<MethodId>("DIP_CHIP");
+  const [sessionMethodFilter, setSessionMethodFilter] = useState<"ALL" | MethodId>("ALL");
+  const [sessionStatusFilter, setSessionStatusFilter] = useState("ALL");
   const [sessions, setSessions] = useState<VerificationSession[]>([]);
   const [activeSession, setActiveSession] = useState<VerificationSession | null>(null);
   const [error, setError] = useState("");
@@ -40,14 +44,31 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
       setError("");
 
       try {
-        const response = await getJson<VerificationSession[]>("/api/verification/sessions", {
+        const params = new URLSearchParams();
+
+        if (sessionMethodFilter !== "ALL") {
+          params.set("method", sessionMethodFilter);
+        }
+
+        if (sessionStatusFilter !== "ALL") {
+          params.set("status", sessionStatusFilter);
+        }
+
+        const path = params.size > 0 ? `/api/verification/sessions?${params.toString()}` : "/api/verification/sessions";
+        const response = await getJson<VerificationSession[]>(path, {
           accessToken: operator.accessToken
         });
 
         if (!cancelled) {
           const nextSessions = response.data ?? [];
           setSessions(nextSessions);
-          setActiveSession((current) => current ?? nextSessions[0] ?? null);
+          setActiveSession((current) => {
+            if (current && nextSessions.some((session) => session.transactionId === current.transactionId)) {
+              return current;
+            }
+
+            return nextSessions[0] ?? null;
+          });
         }
       } catch (err) {
         if (!cancelled) {
@@ -65,7 +86,7 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
     return () => {
       cancelled = true;
     };
-  }, [operator.accessToken]);
+  }, [operator.accessToken, sessionMethodFilter, sessionStatusFilter]);
 
   function handleApiError(err: unknown, fallback: string) {
     if (err instanceof ApiError && err.status === 401) {
@@ -101,6 +122,8 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
       );
 
       if (response.data) {
+        setSessionMethodFilter("ALL");
+        setSessionStatusFilter("ALL");
         mergeSession(response.data);
       }
     } catch (err) {
@@ -364,12 +387,44 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
           </div>
 
           <section className="mt-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm" id="transactions" aria-labelledby="transactions-title">
-            <div className="mb-4 flex items-center justify-between gap-3">
+            <div className="mb-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
               <div>
                 <h2 id="transactions-title" className="text-xl font-bold text-slate-950">Recent Transactions</h2>
                 <p className="mt-1 text-sm text-slate-500">Latest persisted verification sessions.</p>
               </div>
-              <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">{sessions.length}</span>
+              <div className="grid gap-3 sm:grid-cols-[180px_220px_auto] sm:items-end">
+                <label className="grid gap-1 text-xs font-bold uppercase text-slate-500">
+                  Method
+                  <select
+                    className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold normal-case text-slate-700 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                    value={sessionMethodFilter}
+                    onChange={(event) => setSessionMethodFilter(event.target.value as "ALL" | MethodId)}
+                  >
+                    <option value="ALL">All methods</option>
+                    {methods.map((method) => (
+                      <option key={method.id} value={method.id}>
+                        {method.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="grid gap-1 text-xs font-bold uppercase text-slate-500">
+                  Status
+                  <select
+                    className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold normal-case text-slate-700 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                    value={sessionStatusFilter}
+                    onChange={(event) => setSessionStatusFilter(event.target.value)}
+                  >
+                    <option value="ALL">All statuses</option>
+                    {statusFilters.map((status) => (
+                      <option key={status} value={status}>
+                        {status}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <span className="rounded-md bg-slate-100 px-2.5 py-2 text-center text-xs font-bold text-slate-600">{sessions.length}</span>
+              </div>
             </div>
 
             {isLoadingSessions ? (
