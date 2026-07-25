@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ApiError, getJson, postJson } from "../../api/client";
 import { AccountSecurityPanel } from "../auth/AccountSecurityPanel";
+import { AuditInquiryPanel } from "../audit/AuditInquiryPanel";
 import { AuditTimelinePanel } from "./AuditTimelinePanel";
 import { OperatorManagementPanel } from "../operators/OperatorManagementPanel";
 import type { AuthSession } from "../auth/types";
@@ -37,7 +38,7 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const activeWorkflowIndex = workflowIndex(activeSession?.status);
   const operatorInitials = (operator.displayName || operator.username).slice(0, 2).toUpperCase();
-  const navigationItems = operator.role === "ADMIN" ? ["Verification", "Transactions", "Account", "Operators"] : ["Verification", "Transactions", "Account"];
+  const navigationItems = operator.role === "ADMIN" ? ["Verification", "Transactions", "Account", "Audit", "Operators"] : ["Verification", "Transactions", "Account"];
 
   useEffect(() => {
     let cancelled = false;
@@ -565,6 +566,10 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
             onError={setError}
             onSessionExpired={onSessionExpired}
           />
+
+          {operator.role === "ADMIN" ? (
+            <AuditInquiryPanel accessToken={operator.accessToken} onError={setError} onSessionExpired={onSessionExpired} />
+          ) : null}
 
           {operator.role === "ADMIN" ? (
             <OperatorManagementPanel

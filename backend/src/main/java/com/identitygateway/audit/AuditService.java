@@ -4,6 +4,7 @@ import com.identitygateway.auth.OperatorUser;
 import com.identitygateway.auth.OperatorUserRepository;
 import com.identitygateway.verification.SessionOperatorResponse;
 import com.identitygateway.verification.VerificationSessionEntity;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -60,6 +61,16 @@ public class AuditService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<AuditEventResponse> recentEvents(String eventType, UUID operatorId, int limit) {
+        AuditEventType parsedEventType = parseEventType(eventType);
+        int cappedLimit = Math.max(1, Math.min(limit, 100));
+
+        return auditEventRepository.searchRecent(parsedEventType, operatorId, PageRequest.of(0, cappedLimit)).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
     public static Map<String, String> metadata(String key, String value) {
         Map<String, String> metadata = new LinkedHashMap<>();
         metadata.put(key, value);
@@ -76,6 +87,18 @@ public class AuditService {
         Map<String, String> metadata = metadata(key1, value1, key2, value2);
         metadata.put(key3, value3);
         return metadata;
+    }
+
+    private static AuditEventType parseEventType(String eventType) {
+        if (eventType == null || eventType.isBlank()) {
+            return null;
+        }
+
+        try {
+            return AuditEventType.valueOf(eventType.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Unsupported audit event type: " + eventType, ex);
+        }
     }
 
     private AuditEventResponse toResponse(AuditEventEntity event) {

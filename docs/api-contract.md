@@ -198,6 +198,33 @@ Request:
 ### `PUT /operators/{operatorId}/disabled`
 
 Disables an operator account and revokes active sessions. Admin operators cannot disable their own account. Unknown IDs return `404` with code `NOT_FOUND`.
+## Audit Inquiry
+
+### `GET /audit-events`
+
+Returns recent platform audit events for authenticated `ADMIN` operators. Optional query parameters: `eventType`, `operatorId`, and `limit` from `1` to `100`.
+
+Response data:
+
+```json
+[
+  {
+    "eventId": "uuid",
+    "eventType": "AUTH_LOGIN_SUCCEEDED",
+    "transactionId": null,
+    "operator": {
+      "operatorId": "uuid",
+      "username": "operator",
+      "displayName": "Operations User"
+    },
+    "summary": "Operator login succeeded.",
+    "metadataJson": "{\"username\":\"operator\"}",
+    "occurredAt": "2026-07-25T00:00:00Z"
+  }
+]
+```
+
+Unsupported event types return `400` with code `BAD_REQUEST`.
 ## Verification
 
 ### `GET /verification/methods`
