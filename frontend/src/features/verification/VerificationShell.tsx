@@ -332,6 +332,96 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
                       <dt className="text-xs font-bold uppercase text-slate-400">Created By</dt>
                       <dd className="mt-1 text-sm font-semibold text-slate-950">{activeSession.createdBy?.displayName ?? "Unknown operator"}</dd>
                     </div>
+
+                    {activeSession.identity ? (
+                      <div className="border-t border-slate-100 pt-4">
+                        <dt className="text-xs font-bold uppercase text-slate-400">Identity Summary</dt>
+                        <dd className="mt-3 grid gap-3 sm:grid-cols-3">
+                          <span>
+                            <span className="block text-xs font-semibold text-slate-400">Citizen</span>
+                            <span className="mt-1 block text-sm font-semibold text-slate-950">
+                              {activeSession.identity.title} {activeSession.identity.firstName} {activeSession.identity.lastName}
+                            </span>
+                          </span>
+                          <span>
+                            <span className="block text-xs font-semibold text-slate-400">National ID</span>
+                            <span className="mt-1 block text-sm font-semibold text-slate-950">{activeSession.identity.maskedNationalId}</span>
+                          </span>
+                          <span>
+                            <span className="block text-xs font-semibold text-slate-400">Birth Date</span>
+                            <span className="mt-1 block text-sm font-semibold text-slate-950">{formatDate(activeSession.identity.dateOfBirth)}</span>
+                          </span>
+                          {activeSession.identity.readerName ? (
+                            <span>
+                              <span className="block text-xs font-semibold text-slate-400">Reader</span>
+                              <span className="mt-1 block text-sm font-semibold text-slate-950">{activeSession.identity.readerName}</span>
+                            </span>
+                          ) : null}
+                          {activeSession.identity.readerSerialNumber ? (
+                            <span>
+                              <span className="block text-xs font-semibold text-slate-400">Reader Serial</span>
+                              <span className="mt-1 block text-sm font-semibold text-slate-950">{activeSession.identity.readerSerialNumber}</span>
+                            </span>
+                          ) : null}
+                          <span>
+                            <span className="block text-xs font-semibold text-slate-400">Updated</span>
+                            <span className="mt-1 block text-sm font-semibold text-slate-950">{formatDateTime(activeSession.identity.updatedAt)}</span>
+                          </span>
+                        </dd>
+                      </div>
+                    ) : null}
+
+                    {activeSession.dopaValidation ? (
+                      <div className="border-t border-slate-100 pt-4">
+                        <dt className="text-xs font-bold uppercase text-slate-400">DOPA Result</dt>
+                        <dd className="mt-3 grid gap-3 sm:grid-cols-3">
+                          <span>
+                            <span className="block text-xs font-semibold text-slate-400">Status</span>
+                            <span className={`mt-1 block text-sm font-semibold ${activeSession.dopaValidation.validationStatus === "MATCHED" ? "text-emerald-700" : "text-red-700"}`}>
+                              {activeSession.dopaValidation.validationStatus}
+                            </span>
+                          </span>
+                          <span>
+                            <span className="block text-xs font-semibold text-slate-400">Code</span>
+                            <span className="mt-1 block text-sm font-semibold text-slate-950">{activeSession.dopaValidation.responseCode}</span>
+                          </span>
+                          <span>
+                            <span className="block text-xs font-semibold text-slate-400">Validated</span>
+                            <span className="mt-1 block text-sm font-semibold text-slate-950">{formatDateTime(activeSession.dopaValidation.validatedAt)}</span>
+                          </span>
+                          <span className="sm:col-span-3">
+                            <span className="block text-xs font-semibold text-slate-400">Message</span>
+                            <span className="mt-1 block text-sm font-semibold text-slate-950">{activeSession.dopaValidation.responseMessage}</span>
+                          </span>
+                        </dd>
+                      </div>
+                    ) : null}
+
+                    {activeSession.closeout ? (
+                      <div className="border-t border-slate-100 pt-4">
+                        <dt className="text-xs font-bold uppercase text-slate-400">Closeout</dt>
+                        <dd className="mt-3 grid gap-3 sm:grid-cols-3">
+                          <span>
+                            <span className="block text-xs font-semibold text-slate-400">Decision</span>
+                            <span className={`mt-1 block text-sm font-semibold ${statusClassName(activeSession.closeout.decision)}`}>{activeSession.closeout.decision}</span>
+                          </span>
+                          <span>
+                            <span className="block text-xs font-semibold text-slate-400">Decided By</span>
+                            <span className="mt-1 block text-sm font-semibold text-slate-950">{activeSession.closeout.decidedBy.displayName}</span>
+                          </span>
+                          <span>
+                            <span className="block text-xs font-semibold text-slate-400">Decided</span>
+                            <span className="mt-1 block text-sm font-semibold text-slate-950">{formatDateTime(activeSession.closeout.decidedAt)}</span>
+                          </span>
+                          {activeSession.closeout.notes ? (
+                            <span className="sm:col-span-3">
+                              <span className="block text-xs font-semibold text-slate-400">Notes</span>
+                              <span className="mt-1 block text-sm font-semibold text-slate-950">{activeSession.closeout.notes}</span>
+                            </span>
+                          ) : null}
+                        </dd>
+                      </div>
+                    ) : null}
                   </dl>
                 ) : (
                   <div className="grid min-h-44 place-items-center rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 text-center">
@@ -472,6 +562,21 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
   );
 }
 
+function formatDate(value?: string | null) {
+  if (!value) {
+    return "-";
+  }
+
+  return new Date(value).toLocaleDateString();
+}
+
+function formatDateTime(value?: string | null) {
+  if (!value) {
+    return "-";
+  }
+
+  return new Date(value).toLocaleString();
+}
 function methodLabel(method: MethodId) {
   return methods.find((item) => item.id === method)?.label ?? method;
 }

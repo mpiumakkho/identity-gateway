@@ -103,7 +103,7 @@ class VerificationControllerTest {
     @Test
     void sessionReturnsTransactionDetail() throws Exception {
         UUID transactionId = UUID.fromString("b9d38258-8ec4-4645-a6ca-e901e1c1766a");
-        when(verificationService.session(transactionId)).thenReturn(sessionResponse());
+        when(verificationService.session(transactionId)).thenReturn(sessionDetailResponse());
 
         mockMvc.perform(get("/api/verification/sessions/{transactionId}", transactionId))
                 .andExpect(status().isOk())
@@ -355,6 +355,50 @@ class VerificationControllerTest {
                 .andExpect(jsonPath("$.message", not(blankOrNullString())));
     }
 
+    private static VerificationSessionDetailResponse sessionDetailResponse() {
+        return new VerificationSessionDetailResponse(
+                UUID.fromString("b9d38258-8ec4-4645-a6ca-e901e1c1766a"),
+                "DIP_CHIP",
+                "CREATED",
+                new SessionOperatorResponse(
+                        UUID.fromString("9e04e2eb-d74a-4d55-987c-f38660aa3060"),
+                        "operator",
+                        "Operations User"
+                ),
+                Instant.parse("2026-07-25T00:00:00Z"),
+                new VerificationIdentitySummaryResponse(
+                        "DIP_CHIP",
+                        "123******0123",
+                        "Mr.",
+                        "Somchai",
+                        "Jaidee",
+                        LocalDate.parse("1990-01-31"),
+                        LocalDate.parse("2021-02-01"),
+                        LocalDate.parse("2031-01-31"),
+                        "ACR39U",
+                        "RD-001",
+                        Instant.parse("2026-07-25T01:20:00Z")
+                ),
+                new VerificationDopaSummaryResponse(
+                        "MATCHED",
+                        "DIP_CHIP",
+                        "DOPA-0000",
+                        "Citizen identity matched.",
+                        "CONSENT-001",
+                        Instant.parse("2026-07-25T01:30:00Z")
+                ),
+                new VerificationDecisionSummaryResponse(
+                        "APPROVED",
+                        "Matched and reviewed.",
+                        new SessionOperatorResponse(
+                                UUID.fromString("9e04e2eb-d74a-4d55-987c-f38660aa3060"),
+                                "operator",
+                                "Operations User"
+                        ),
+                        Instant.parse("2026-07-25T02:00:00Z")
+                )
+        );
+    }
     private static VerificationSessionResponse sessionResponse() {
         return new VerificationSessionResponse(
                 UUID.fromString("b9d38258-8ec4-4645-a6ca-e901e1c1766a"),

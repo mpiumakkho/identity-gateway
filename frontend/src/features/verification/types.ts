@@ -12,6 +12,39 @@ export type VerificationSession = {
   status: string;
   createdBy: SessionOperator | null;
   createdAt: string;
+  identity?: VerificationIdentitySummary | null;
+  dopaValidation?: VerificationDopaSummary | null;
+  closeout?: VerificationDecisionSummary | null;
+};
+
+export type VerificationIdentitySummary = {
+  source: MethodId;
+  maskedNationalId: string;
+  title: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  cardIssueDate: string | null;
+  cardExpiryDate: string | null;
+  readerName: string | null;
+  readerSerialNumber: string | null;
+  updatedAt: string;
+};
+
+export type VerificationDopaSummary = {
+  validationStatus: string;
+  identitySource: string;
+  responseCode: string;
+  responseMessage: string;
+  consentReference: string;
+  validatedAt: string | null;
+};
+
+export type VerificationDecisionSummary = {
+  decision: string;
+  notes: string | null;
+  decidedBy: SessionOperator;
+  decidedAt: string;
 };
 
 export type ManualIdentityPayload = {

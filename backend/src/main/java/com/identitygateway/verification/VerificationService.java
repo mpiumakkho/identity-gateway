@@ -7,6 +7,8 @@ import com.identitygateway.audit.AuditEventResponse;
 import com.identitygateway.audit.AuditEventType;
 import com.identitygateway.audit.AuditService;
 import com.identitygateway.common.error.ResourceNotFoundException;
+import com.identitygateway.dopa.DopaValidationAttempt;
+import com.identitygateway.dopa.DopaValidationAttemptRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,7 @@ public class VerificationService {
     private final ManualIdentityEntryRepository manualIdentityEntryRepository;
     private final DipChipIdentityEntryRepository dipChipIdentityEntryRepository;
     private final VerificationDecisionRepository verificationDecisionRepository;
+    private final DopaValidationAttemptRepository dopaValidationAttemptRepository;
     private final OperatorUserRepository operatorUserRepository;
     private final AuditService auditService;
 
@@ -33,6 +36,7 @@ public class VerificationService {
             ManualIdentityEntryRepository manualIdentityEntryRepository,
             DipChipIdentityEntryRepository dipChipIdentityEntryRepository,
             VerificationDecisionRepository verificationDecisionRepository,
+            DopaValidationAttemptRepository dopaValidationAttemptRepository,
             OperatorUserRepository operatorUserRepository,
             AuditService auditService
     ) {
@@ -40,6 +44,7 @@ public class VerificationService {
         this.manualIdentityEntryRepository = manualIdentityEntryRepository;
         this.dipChipIdentityEntryRepository = dipChipIdentityEntryRepository;
         this.verificationDecisionRepository = verificationDecisionRepository;
+        this.dopaValidationAttemptRepository = dopaValidationAttemptRepository;
         this.operatorUserRepository = operatorUserRepository;
         this.auditService = auditService;
     }
@@ -66,8 +71,8 @@ public class VerificationService {
                 .toList();
     }
     @Transactional(readOnly = true)
-    public VerificationSessionResponse session(UUID transactionId) {
-        return toResponse(requireSession(transactionId));
+    public VerificationSessionDetailResponse session(UUID transactionId) {
+        return toDetailResponse(requireSession(transactionId));
     }
 
     @Transactional(readOnly = true)
@@ -226,6 +231,91 @@ public class VerificationService {
         }
     }
 
+    private VerificationSessionDetailResponse toDetailResponse(VerificationSessionEntity session) {
+        return new VerificationSessionDetailResponse(
+                session.getId(),
+                session.getMethod().name(),
+                session.getStatus().name(),
+                SessionOperatorResponse.from(session.getCreatedBy()),
+                session.getCreatedAt(),
+                identitySummary(session),
+                dopaSummary(session),
+                closeoutSummary(session)
+        );
+    }
+
+    private VerificationIdentitySummaryResponse identitySummary(VerificationSessionEntity session) {
+        if (session.getMethod() == VerificationMethod.DIP_CHIP) {
+            return dipChipIdentityEntryRepository.findBySessionId(session.getId())
+                    .map(this::toDipChipIdentitySummary)
+                    .orElse(null);
+        }
+
+        return manualIdentityEntryRepository.findBySessionId(session.getId())
+                .map(this::toManualIdentitySummary)
+                .orElse(null);
+    }
+
+    private VerificationIdentitySummaryResponse toManualIdentitySummary(ManualIdentityEntry entry) {
+        return new VerificationIdentitySummaryResponse(
+                VerificationMethod.MANUAL_ENTRY.name(),
+                maskNationalId(entry.getNationalId()),
+                entry.getTitle(),
+                entry.getFirstName(),
+                entry.getLastName(),
+                entry.getDateOfBirth(),
+                null,
+                null,
+                null,
+                null,
+                entry.getUpdatedAt()
+        );
+    }
+
+    private VerificationIdentitySummaryResponse toDipChipIdentitySummary(DipChipIdentityEntry entry) {
+        return new VerificationIdentitySummaryResponse(
+                VerificationMethod.DIP_CHIP.name(),
+                maskNationalId(entry.getNationalId()),
+                entry.getTitle(),
+                entry.getFirstName(),
+                entry.getLastName(),
+                entry.getDateOfBirth(),
+                entry.getCardIssueDate(),
+                entry.getCardExpiryDate(),
+                entry.getReaderName(),
+                entry.getReaderSerialNumber(),
+                entry.getUpdatedAt()
+        );
+    }
+
+    private VerificationDopaSummaryResponse dopaSummary(VerificationSessionEntity session) {
+        return dopaValidationAttemptRepository.findTop10BySessionIdOrderByValidatedAtDesc(session.getId()).stream()
+                .findFirst()
+                .map(this::toDopaSummary)
+                .orElse(null);
+    }
+
+    private VerificationDopaSummaryResponse toDopaSummary(DopaValidationAttempt attempt) {
+        return new VerificationDopaSummaryResponse(
+                attempt.getResultStatus().name(),
+                attempt.getIdentitySource().name(),
+                attempt.getResponseCode(),
+                attempt.getResponseMessage(),
+                attempt.getConsentReference(),
+                attempt.getValidatedAt()
+        );
+    }
+
+    private VerificationDecisionSummaryResponse closeoutSummary(VerificationSessionEntity session) {
+        return verificationDecisionRepository.findBySessionId(session.getId())
+                .map(closeout -> new VerificationDecisionSummaryResponse(
+                        closeout.getDecision().name(),
+                        closeout.getNotes(),
+                        SessionOperatorResponse.from(closeout.getDecidedBy()),
+                        closeout.getDecidedAt()
+                ))
+                .orElse(null);
+    }
     private VerificationSessionResponse toResponse(VerificationSessionEntity session) {
         return new VerificationSessionResponse(
                 session.getId(),

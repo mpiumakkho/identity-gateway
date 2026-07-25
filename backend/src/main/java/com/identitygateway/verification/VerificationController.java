@@ -43,7 +43,7 @@ public class VerificationController {
     }
 
     @GetMapping("/sessions/{transactionId}")
-    public ApiResponse<VerificationSessionResponse> session(@PathVariable UUID transactionId) {
+    public ApiResponse<VerificationSessionDetailResponse> session(@PathVariable UUID transactionId) {
         return ApiResponse.ok(verificationService.session(transactionId));
     }
 

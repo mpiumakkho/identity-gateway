@@ -117,7 +117,54 @@ Response data:
 
 ### `GET /verification/sessions/{transactionId}`
 
-Returns one verification session by transaction ID. Requires authentication. Unknown IDs return `404` with code `NOT_FOUND`.
+Returns one verification session by transaction ID. Requires authentication. Unknown IDs return `404` with code `NOT_FOUND`. The response includes optional masked workflow summaries when identity capture, DOPA validation, or closeout has been completed. Sensitive values such as national ID, laser code, raw Dip Chip payloads, passwords, and bearer tokens are not returned.
+
+Response data:
+
+```json
+{
+  "transactionId": "uuid",
+  "method": "DIP_CHIP",
+  "status": "APPROVED",
+  "createdBy": {
+    "operatorId": "uuid",
+    "username": "operator",
+    "displayName": "Operations User"
+  },
+  "createdAt": "2026-07-25T00:00:00Z",
+  "identity": {
+    "source": "DIP_CHIP",
+    "maskedNationalId": "123******0123",
+    "title": "Mr.",
+    "firstName": "Somchai",
+    "lastName": "Jaidee",
+    "dateOfBirth": "1990-01-31",
+    "cardIssueDate": "2021-02-01",
+    "cardExpiryDate": "2031-01-31",
+    "readerName": "ACR39U",
+    "readerSerialNumber": "RD-001",
+    "updatedAt": "2026-07-25T01:20:00Z"
+  },
+  "dopaValidation": {
+    "validationStatus": "MATCHED",
+    "identitySource": "DIP_CHIP",
+    "responseCode": "DOPA-0000",
+    "responseMessage": "Citizen identity matched.",
+    "consentReference": "CONSENT-001",
+    "validatedAt": "2026-07-25T01:30:00Z"
+  },
+  "closeout": {
+    "decision": "APPROVED",
+    "notes": "Matched and reviewed.",
+    "decidedBy": {
+      "operatorId": "uuid",
+      "username": "operator",
+      "displayName": "Operations User"
+    },
+    "decidedAt": "2026-07-25T02:00:00Z"
+  }
+}
+```
 
 ### `POST /verification/sessions`
 
@@ -223,6 +270,7 @@ Response data:
 ```
 
 Invalid payloads return `400` with code `VALIDATION_ERROR`. Non-Dip-Chip sessions return `400` with code `BAD_REQUEST`.
+
 ### `POST /verification/sessions/{transactionId}/dopa-validation`
 
 Validates the captured identity details for a transaction session. Requires authentication. The session must already be `IDENTITY_CAPTURED`, `DOPA_VERIFIED`, or `DOPA_REJECTED`. A matched result moves the session to `DOPA_VERIFIED`; an unmatched result moves it to `DOPA_REJECTED`. The response masks the national ID and never returns the laser code.
@@ -252,6 +300,7 @@ Response data:
 ```
 
 Invalid payloads return `400` with code `VALIDATION_ERROR`. Sessions without captured identity return `400` with code `BAD_REQUEST`.
+
 ### `POST /verification/sessions/{transactionId}/closeout`
 
 Closes a transaction after DOPA validation and records the operator decision. Requires authentication. The session must be `DOPA_VERIFIED` or `DOPA_REJECTED`. `DOPA_REJECTED` sessions cannot be approved. A successful closeout moves the session to `APPROVED` or `REJECTED` and prevents further identity capture or DOPA validation.
@@ -283,6 +332,7 @@ Response data:
 ```
 
 Invalid payloads return `400` with code `VALIDATION_ERROR`. Transactions that are not ready for closeout return `400` with code `BAD_REQUEST`.
+
 ### `GET /verification/sessions/{transactionId}/audit-events`
 
 Returns the audit timeline for one transaction. Requires authentication. Audit metadata is intentionally limited to workflow-safe fields and excludes national ID, laser code, raw Dip Chip payloads, passwords, and bearer tokens.

@@ -6,6 +6,11 @@ import com.identitygateway.auth.OperatorUser;
 import com.identitygateway.auth.OperatorUserRepository;
 import com.identitygateway.common.error.ResourceNotFoundException;
 import com.identitygateway.audit.AuditService;
+import com.identitygateway.dopa.DopaGatewayResult;
+import com.identitygateway.dopa.DopaIdentitySource;
+import com.identitygateway.dopa.DopaValidationAttempt;
+import com.identitygateway.dopa.DopaValidationAttemptRepository;
+import com.identitygateway.dopa.DopaValidationResultStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,6 +48,9 @@ class VerificationServiceTest {
     private VerificationDecisionRepository verificationDecisionRepository;
 
     @Mock
+    private DopaValidationAttemptRepository dopaValidationAttemptRepository;
+
+    @Mock
     private OperatorUserRepository operatorUserRepository;
 
     @Mock
@@ -57,6 +65,7 @@ class VerificationServiceTest {
                 manualIdentityEntryRepository,
                 dipChipIdentityEntryRepository,
                 verificationDecisionRepository,
+                dopaValidationAttemptRepository,
                 operatorUserRepository,
                 auditService
         );
@@ -110,7 +119,7 @@ class VerificationServiceTest {
         VerificationSessionEntity entity = sessionEntity(VerificationMethod.DIP_CHIP);
         when(verificationSessionRepository.findDetailById(entity.getId())).thenReturn(Optional.of(entity));
 
-        VerificationSessionResponse response = verificationService.session(entity.getId());
+        VerificationSessionDetailResponse response = verificationService.session(entity.getId());
 
         assertThat(response.transactionId()).isEqualTo(entity.getId());
         assertThat(response.method()).isEqualTo("DIP_CHIP");
