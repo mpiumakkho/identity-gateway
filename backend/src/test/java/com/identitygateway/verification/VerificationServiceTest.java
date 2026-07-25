@@ -32,6 +32,9 @@ class VerificationServiceTest {
     private ManualIdentityEntryRepository manualIdentityEntryRepository;
 
     @Mock
+    private DipChipIdentityEntryRepository dipChipIdentityEntryRepository;
+
+    @Mock
     private OperatorUserRepository operatorUserRepository;
 
     private VerificationService verificationService;
@@ -41,6 +44,7 @@ class VerificationServiceTest {
         verificationService = new VerificationService(
                 verificationSessionRepository,
                 manualIdentityEntryRepository,
+                dipChipIdentityEntryRepository,
                 operatorUserRepository
         );
     }
@@ -149,6 +153,48 @@ class VerificationServiceTest {
                 .hasMessage("Manual identity can only be captured for MANUAL_ENTRY sessions.");
     }
 
+    @Test
+    void saveDipChipPayloadCapturesDipChipSessionAndUpdatesSessionStatus() {
+        VerificationSessionEntity session = sessionEntity(VerificationMethod.DIP_CHIP);
+        DipChipPayloadRequest request = dipChipRequest();
+        when(verificationSessionRepository.findDetailById(session.getId())).thenReturn(Optional.of(session));
+        when(dipChipIdentityEntryRepository.findBySessionId(session.getId())).thenReturn(Optional.empty());
+        when(dipChipIdentityEntryRepository.save(any(DipChipIdentityEntry.class)))
+                .thenAnswer(invocation -> {
+                    DipChipIdentityEntry entry = invocation.getArgument(0);
+                    entry.prePersist();
+                    return entry;
+                });
+
+        DipChipPayloadResponse response = verificationService.saveDipChipPayload(session.getId(), request);
+
+        assertThat(response.transactionId()).isEqualTo(session.getId());
+        assertThat(response.sessionStatus()).isEqualTo("IDENTITY_CAPTURED");
+        assertThat(response.maskedNationalId()).isEqualTo("123******0123");
+        assertThat(response.readerName()).isEqualTo("ACR39U");
+        assertThat(response.readerSerialNumber()).isEqualTo("RD-001");
+        assertThat(response.updatedAt()).isNotNull();
+    }
+
+    @Test
+    void saveDipChipPayloadRejectsManualEntrySession() {
+        VerificationSessionEntity session = sessionEntity(VerificationMethod.MANUAL_ENTRY);
+        when(verificationSessionRepository.findDetailById(session.getId())).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> verificationService.saveDipChipPayload(session.getId(), dipChipRequest()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Dip Chip payload can only be captured for DIP_CHIP sessions.");
+    }
+    @Test
+    void saveDipChipPayloadRejectsInvalidCardDateOrder() {
+        VerificationSessionEntity session = sessionEntity(VerificationMethod.DIP_CHIP);
+        when(verificationSessionRepository.findDetailById(session.getId())).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> verificationService.saveDipChipPayload(session.getId(), dipChipRequestWithInvalidDates()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Card expiry date must be on or after the issue date.");
+    }
+
     private static VerificationSessionEntity sessionEntity(VerificationMethod method) {
         OperatorUser operator = OperatorUser.create("operator", "hash", "Operations User", OperatorRole.OPERATIONS);
         VerificationSessionEntity entity = VerificationSessionEntity.create(method, operator);
@@ -174,6 +220,37 @@ class VerificationServiceTest {
                 "Jaidee",
                 LocalDate.parse("1990-01-31"),
                 "JT1234567890"
+        );
+    }
+
+    private static DipChipPayloadRequest dipChipRequest() {
+        return new DipChipPayloadRequest(
+                "1234567890123",
+                "Mr.",
+                "Somchai",
+                "Jaidee",
+                LocalDate.parse("1990-01-31"),
+                "JT1234567890",
+                LocalDate.parse("2021-02-01"),
+                LocalDate.parse("2031-01-31"),
+                "ACR39U",
+                "RD-001",
+                "{\"cid\":\"1234567890123\",\"reader\":\"ACR39U\"}"
+        );
+    }
+    private static DipChipPayloadRequest dipChipRequestWithInvalidDates() {
+        return new DipChipPayloadRequest(
+                "1234567890123",
+                "Mr.",
+                "Somchai",
+                "Jaidee",
+                LocalDate.parse("1990-01-31"),
+                "JT1234567890",
+                LocalDate.parse("2031-01-31"),
+                LocalDate.parse("2021-02-01"),
+                "ACR39U",
+                "RD-001",
+                "{\"cid\":\"1234567890123\",\"reader\":\"ACR39U\"}"
         );
     }
 }

@@ -146,6 +146,7 @@ Response data:
   "createdAt": "2026-07-25T00:00:00Z"
 }
 ```
+
 ### `PUT /verification/sessions/{transactionId}/manual-identity`
 
 Captures or updates citizen-card details for a `MANUAL_ENTRY` transaction session. Requires authentication. The session moves to `IDENTITY_CAPTURED` when the identity payload is saved. `laserCode` is accepted for controlled capture but is not returned in API responses.
@@ -179,3 +180,46 @@ Response data:
 ```
 
 Invalid payloads return `400` with code `VALIDATION_ERROR`. Non-manual sessions return `400` with code `BAD_REQUEST`.
+
+### `PUT /verification/sessions/{transactionId}/dip-chip-payload`
+
+Captures or updates normalized citizen-card payload data for a `DIP_CHIP` transaction session. Requires authentication. The session moves to `IDENTITY_CAPTURED` when the card payload is saved. `laserCode` and `rawPayload` are accepted for backend processing and audit traceability but are not returned in API responses.
+
+Request:
+
+```json
+{
+  "nationalId": "1234567890123",
+  "title": "Mr.",
+  "firstName": "Somchai",
+  "lastName": "Jaidee",
+  "dateOfBirth": "1990-01-31",
+  "laserCode": "JT1234567890",
+  "cardIssueDate": "2021-02-01",
+  "cardExpiryDate": "2031-01-31",
+  "readerName": "ACR39U",
+  "readerSerialNumber": "RD-001",
+  "rawPayload": "CID=1234567890123;READER=ACR39U"
+}
+```
+
+Response data:
+
+```json
+{
+  "transactionId": "uuid",
+  "sessionStatus": "IDENTITY_CAPTURED",
+  "maskedNationalId": "123******0123",
+  "title": "Mr.",
+  "firstName": "Somchai",
+  "lastName": "Jaidee",
+  "dateOfBirth": "1990-01-31",
+  "cardIssueDate": "2021-02-01",
+  "cardExpiryDate": "2031-01-31",
+  "readerName": "ACR39U",
+  "readerSerialNumber": "RD-001",
+  "updatedAt": "2026-07-25T00:00:00Z"
+}
+```
+
+Invalid payloads return `400` with code `VALIDATION_ERROR`. Non-Dip-Chip sessions return `400` with code `BAD_REQUEST`.

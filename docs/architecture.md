@@ -9,7 +9,7 @@ The backend exposes REST APIs under `/api`. Controllers stay thin and delegate b
 Current backend modules:
 
 - `auth`: operator login, user repository, BCrypt password verification
-- `verification`: verification method catalog, persisted session creation, and manual identity capture
+- `verification`: verification method catalog, persisted session creation, manual identity capture, and Dip Chip payload intake
 - `config`: CORS and Spring Security configuration
 - `common`: shared API response and error handling
 
@@ -39,7 +39,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 2. Login flow: operator login, session/token strategy, protected app shell.
 3. Method flow: select `DIP_CHIP` or `MANUAL_ENTRY` and create a transaction session.
 4. Manual identity flow: controlled citizen-data entry and validation.
-5. Dip Chip flow: card-reader payload capture and normalization.
+5. Dip Chip flow: card-reader payload capture and normalization. Done as a dedicated intake flow before DOPA integration.
 6. DOPA flow: external validation request, response mapping, retry/error states.
 7. Summary flow: verification decision, transaction closeout, audit event capture.
 

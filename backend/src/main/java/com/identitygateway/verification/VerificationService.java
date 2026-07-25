@@ -9,23 +9,27 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Service
 public class VerificationService {
 
+    private static final String SESSION_NOT_FOUND_MESSAGE = "Verification session not found.";
+
     private final VerificationSessionRepository verificationSessionRepository;
     private final ManualIdentityEntryRepository manualIdentityEntryRepository;
+    private final DipChipIdentityEntryRepository dipChipIdentityEntryRepository;
     private final OperatorUserRepository operatorUserRepository;
 
     public VerificationService(
             VerificationSessionRepository verificationSessionRepository,
             ManualIdentityEntryRepository manualIdentityEntryRepository,
+            DipChipIdentityEntryRepository dipChipIdentityEntryRepository,
             OperatorUserRepository operatorUserRepository
     ) {
         this.verificationSessionRepository = verificationSessionRepository;
         this.manualIdentityEntryRepository = manualIdentityEntryRepository;
+        this.dipChipIdentityEntryRepository = dipChipIdentityEntryRepository;
         this.operatorUserRepository = operatorUserRepository;
     }
 
@@ -45,9 +49,7 @@ public class VerificationService {
 
     @Transactional(readOnly = true)
     public VerificationSessionResponse session(UUID transactionId) {
-        return findSession(transactionId)
-                .map(this::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("Verification session not found."));
+        return toResponse(requireSession(transactionId));
     }
 
     @Transactional
@@ -60,12 +62,8 @@ public class VerificationService {
 
     @Transactional
     public ManualIdentityResponse saveManualIdentity(UUID transactionId, ManualIdentityRequest request) {
-        VerificationSessionEntity session = findSession(transactionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Verification session not found."));
-
-        if (session.getMethod() != VerificationMethod.MANUAL_ENTRY) {
-            throw new IllegalArgumentException("Manual identity can only be captured for MANUAL_ENTRY sessions.");
-        }
+        VerificationSessionEntity session = requireSession(transactionId);
+        requireMethod(session, VerificationMethod.MANUAL_ENTRY, "Manual identity can only be captured for MANUAL_ENTRY sessions.");
 
         ManualIdentityEntry entry = manualIdentityEntryRepository.findBySessionId(session.getId())
                 .map(existing -> existing.update(request))
@@ -77,8 +75,37 @@ public class VerificationService {
         return toManualIdentityResponse(session, savedEntry);
     }
 
-    private Optional<VerificationSessionEntity> findSession(UUID transactionId) {
-        return verificationSessionRepository.findDetailById(transactionId);
+    @Transactional
+    public DipChipPayloadResponse saveDipChipPayload(UUID transactionId, DipChipPayloadRequest request) {
+        VerificationSessionEntity session = requireSession(transactionId);
+        requireMethod(session, VerificationMethod.DIP_CHIP, "Dip Chip payload can only be captured for DIP_CHIP sessions.");
+        requireValidCardDates(request);
+
+        DipChipIdentityEntry entry = dipChipIdentityEntryRepository.findBySessionId(session.getId())
+                .map(existing -> existing.update(request))
+                .orElseGet(() -> DipChipIdentityEntry.create(session, request));
+
+        session.markIdentityCaptured();
+        DipChipIdentityEntry savedEntry = dipChipIdentityEntryRepository.save(entry);
+
+        return toDipChipPayloadResponse(session, savedEntry);
+    }
+
+    private static void requireValidCardDates(DipChipPayloadRequest request) {
+        if (request.cardExpiryDate().isBefore(request.cardIssueDate())) {
+            throw new IllegalArgumentException("Card expiry date must be on or after the issue date.");
+        }
+    }
+
+    private VerificationSessionEntity requireSession(UUID transactionId) {
+        return verificationSessionRepository.findDetailById(transactionId)
+                .orElseThrow(() -> new ResourceNotFoundException(SESSION_NOT_FOUND_MESSAGE));
+    }
+
+    private static void requireMethod(VerificationSessionEntity session, VerificationMethod expectedMethod, String message) {
+        if (session.getMethod() != expectedMethod) {
+            throw new IllegalArgumentException(message);
+        }
     }
 
     private VerificationSessionResponse toResponse(VerificationSessionEntity session) {
@@ -100,6 +127,23 @@ public class VerificationService {
                 entry.getFirstName(),
                 entry.getLastName(),
                 entry.getDateOfBirth(),
+                entry.getUpdatedAt()
+        );
+    }
+
+    private DipChipPayloadResponse toDipChipPayloadResponse(VerificationSessionEntity session, DipChipIdentityEntry entry) {
+        return new DipChipPayloadResponse(
+                session.getId(),
+                session.getStatus().name(),
+                maskNationalId(entry.getNationalId()),
+                entry.getTitle(),
+                entry.getFirstName(),
+                entry.getLastName(),
+                entry.getDateOfBirth(),
+                entry.getCardIssueDate(),
+                entry.getCardExpiryDate(),
+                entry.getReaderName(),
+                entry.getReaderSerialNumber(),
                 entry.getUpdatedAt()
         );
     }

@@ -21,7 +21,7 @@ npm run build
 
 The app starts at the operator login screen. A successful login stores the issued bearer token in `sessionStorage` for the current browser tab, sends it as `Authorization: Bearer <token>` for protected API calls, and clears it on sign out or expiry.
 
-The verification workspace shows recent persisted sessions, allows a new session to be started, loads session detail by transaction ID, and captures manual identity details for `MANUAL_ENTRY` sessions.
+The verification workspace shows recent persisted sessions, allows a new session to be started, loads session detail by transaction ID, and captures manual identity details for `MANUAL_ENTRY` sessions, and accepts normalized Dip Chip payloads for `DIP_CHIP` sessions.
 
 ## Notes
 

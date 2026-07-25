@@ -187,6 +187,79 @@ class VerificationControllerTest {
                 .andExpect(jsonPath("$.message", not(blankOrNullString())));
     }
 
+    @Test
+    void saveDipChipPayloadReturnsCapturedIdentity() throws Exception {
+        UUID transactionId = UUID.fromString("b9d38258-8ec4-4645-a6ca-e901e1c1766a");
+        DipChipPayloadResponse response = new DipChipPayloadResponse(
+                transactionId,
+                "IDENTITY_CAPTURED",
+                "123******0123",
+                "Mr.",
+                "Somchai",
+                "Jaidee",
+                LocalDate.parse("1990-01-31"),
+                LocalDate.parse("2021-02-01"),
+                LocalDate.parse("2031-01-31"),
+                "ACR39U",
+                "RD-001",
+                Instant.parse("2026-07-25T01:20:00Z")
+        );
+        when(verificationService.saveDipChipPayload(any(UUID.class), any(DipChipPayloadRequest.class))).thenReturn(response);
+
+        mockMvc.perform(put("/api/verification/sessions/{transactionId}/dip-chip-payload", transactionId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "nationalId": "1234567890123",
+                                  "title": "Mr.",
+                                  "firstName": "Somchai",
+                                  "lastName": "Jaidee",
+                                  "dateOfBirth": "1990-01-31",
+                                  "laserCode": "JT1234567890",
+                                  "cardIssueDate": "2021-02-01",
+                                  "cardExpiryDate": "2031-01-31",
+                                  "readerName": "ACR39U",
+                                  "readerSerialNumber": "RD-001",
+                                  "rawPayload": "CID=1234567890123;READER=ACR39U"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("success"))
+                .andExpect(jsonPath("$.data.transactionId").value(transactionId.toString()))
+                .andExpect(jsonPath("$.data.sessionStatus").value("IDENTITY_CAPTURED"))
+                .andExpect(jsonPath("$.data.maskedNationalId").value("123******0123"))
+                .andExpect(jsonPath("$.data.readerSerialNumber").value("RD-001"))
+                .andExpect(jsonPath("$.data.laserCode").doesNotExist())
+                .andExpect(jsonPath("$.data.rawPayload").doesNotExist());
+    }
+
+    @Test
+    void saveDipChipPayloadRejectsInvalidPayload() throws Exception {
+        UUID transactionId = UUID.fromString("b9d38258-8ec4-4645-a6ca-e901e1c1766a");
+
+        mockMvc.perform(put("/api/verification/sessions/{transactionId}/dip-chip-payload", transactionId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "nationalId": "123",
+                                  "title": "Mr.",
+                                  "firstName": "Somchai",
+                                  "lastName": "Jaidee",
+                                  "dateOfBirth": "1990-01-31",
+                                  "laserCode": "JT1234567890",
+                                  "cardIssueDate": "2021-02-01",
+                                  "cardExpiryDate": "2031-01-31",
+                                  "readerName": "ACR39U",
+                                  "readerSerialNumber": "RD-001",
+                                  "rawPayload": "{}"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("error"))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message", not(blankOrNullString())));
+    }
+
     private static VerificationSessionResponse sessionResponse() {
         return new VerificationSessionResponse(
                 UUID.fromString("b9d38258-8ec4-4645-a6ca-e901e1c1766a"),

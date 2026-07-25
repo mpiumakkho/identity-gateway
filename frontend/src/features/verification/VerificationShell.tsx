@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ApiError, getJson, postJson } from "../../api/client";
 import type { AuthSession } from "../auth/types";
+import { DipChipPanel } from "./DipChipPanel";
 import { ManualIdentityPanel } from "./ManualIdentityPanel";
 import type { MethodId, VerificationSession } from "./types";
 
@@ -316,13 +317,23 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
                 )}
               </section>
 
-              <ManualIdentityPanel
-                accessToken={operator.accessToken}
-                session={activeSession}
-                onError={setError}
-                onSaved={mergeSession}
-                onSessionExpired={onSessionExpired}
-              />
+              {activeSession?.method === "DIP_CHIP" || (!activeSession && selectedMethod === "DIP_CHIP") ? (
+                <DipChipPanel
+                  accessToken={operator.accessToken}
+                  session={activeSession}
+                  onError={setError}
+                  onSaved={mergeSession}
+                  onSessionExpired={onSessionExpired}
+                />
+              ) : (
+                <ManualIdentityPanel
+                  accessToken={operator.accessToken}
+                  session={activeSession}
+                  onError={setError}
+                  onSaved={mergeSession}
+                  onSessionExpired={onSessionExpired}
+                />
+              )}
             </div>
           </div>
 
@@ -385,5 +396,5 @@ function methodLabel(method: MethodId) {
 }
 
 function statusClassName(status: string) {
-  return status === "IDENTITY_CAPTURED" ? "text-indigo-700" : "text-teal-700";
+  return status === "IDENTITY_CAPTURED" ? "text-cyan-700" : "text-teal-700";
 }

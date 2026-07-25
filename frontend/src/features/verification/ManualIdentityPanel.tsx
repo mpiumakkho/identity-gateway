@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import { ApiError, putJson } from "../../api/client";
+import { fieldInputClassName, fieldLabelClassName } from "./formStyles";
 import type { ManualIdentityPayload, ManualIdentityResult, VerificationSession } from "./types";
 
 const emptyForm: ManualIdentityPayload = {
@@ -11,10 +12,6 @@ const emptyForm: ManualIdentityPayload = {
   dateOfBirth: "",
   laserCode: ""
 };
-
-const inputClassName =
-  "block min-h-11 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-950 shadow-sm transition placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500";
-const labelClassName = "mb-1.5 block text-xs font-bold uppercase text-slate-500";
 
 const titles = ["Mr.", "Mrs.", "Ms.", "Miss"];
 
@@ -112,9 +109,9 @@ export function ManualIdentityPanel({ accessToken, session, onError, onSaved, on
         <form className="grid gap-4" onSubmit={submitIdentity}>
           <div className="grid gap-4 sm:grid-cols-[120px_1fr]">
             <label>
-              <span className={labelClassName}>Title</span>
+              <span className={fieldLabelClassName}>Title</span>
               <select
-                className={inputClassName}
+                className={fieldInputClassName}
                 value={form.title}
                 onChange={(event) => updateField("title", event.currentTarget.value)}
                 required
@@ -128,9 +125,9 @@ export function ManualIdentityPanel({ accessToken, session, onError, onSaved, on
               </select>
             </label>
             <label>
-              <span className={labelClassName}>National ID</span>
+              <span className={fieldLabelClassName}>National ID</span>
               <input
-                className={inputClassName}
+                className={fieldInputClassName}
                 inputMode="numeric"
                 maxLength={13}
                 pattern="[0-9]{13}"
@@ -144,9 +141,9 @@ export function ManualIdentityPanel({ accessToken, session, onError, onSaved, on
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label>
-              <span className={labelClassName}>First Name</span>
+              <span className={fieldLabelClassName}>First Name</span>
               <input
-                className={inputClassName}
+                className={fieldInputClassName}
                 maxLength={80}
                 value={form.firstName}
                 onChange={(event) => updateField("firstName", event.currentTarget.value)}
@@ -154,9 +151,9 @@ export function ManualIdentityPanel({ accessToken, session, onError, onSaved, on
               />
             </label>
             <label>
-              <span className={labelClassName}>Last Name</span>
+              <span className={fieldLabelClassName}>Last Name</span>
               <input
-                className={inputClassName}
+                className={fieldInputClassName}
                 maxLength={80}
                 value={form.lastName}
                 onChange={(event) => updateField("lastName", event.currentTarget.value)}
@@ -167,9 +164,9 @@ export function ManualIdentityPanel({ accessToken, session, onError, onSaved, on
 
           <div className="grid gap-4 sm:grid-cols-2">
             <label>
-              <span className={labelClassName}>Date of Birth</span>
+              <span className={fieldLabelClassName}>Date of Birth</span>
               <input
-                className={inputClassName}
+                className={fieldInputClassName}
                 type="date"
                 value={form.dateOfBirth}
                 onChange={(event) => updateField("dateOfBirth", event.currentTarget.value)}
@@ -177,9 +174,9 @@ export function ManualIdentityPanel({ accessToken, session, onError, onSaved, on
               />
             </label>
             <label>
-              <span className={labelClassName}>Laser Code</span>
+              <span className={fieldLabelClassName}>Laser Code</span>
               <input
-                className={inputClassName}
+                className={fieldInputClassName}
                 maxLength={20}
                 minLength={8}
                 value={form.laserCode}

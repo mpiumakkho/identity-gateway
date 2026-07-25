@@ -33,3 +33,26 @@ export type ManualIdentityResult = {
   dateOfBirth: string;
   updatedAt: string;
 };
+
+export type DipChipPayload = ManualIdentityPayload & {
+  cardIssueDate: string;
+  cardExpiryDate: string;
+  readerName: string;
+  readerSerialNumber: string;
+  rawPayload: string;
+};
+
+export type DipChipPayloadResult = {
+  transactionId: string;
+  sessionStatus: string;
+  maskedNationalId: string;
+  title: string;
+  firstName: string;
+  lastName: string;
+  dateOfBirth: string;
+  cardIssueDate: string;
+  cardExpiryDate: string;
+  readerName: string;
+  readerSerialNumber: string;
+  updatedAt: string;
+};

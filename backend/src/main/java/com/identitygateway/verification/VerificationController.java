@@ -59,4 +59,12 @@ public class VerificationController {
     ) {
         return ApiResponse.ok(verificationService.saveManualIdentity(transactionId, request));
     }
+
+    @PutMapping("/sessions/{transactionId}/dip-chip-payload")
+    public ApiResponse<DipChipPayloadResponse> saveDipChipPayload(
+            @PathVariable UUID transactionId,
+            @Valid @RequestBody DipChipPayloadRequest request
+    ) {
+        return ApiResponse.ok(verificationService.saveDipChipPayload(transactionId, request));
+    }
 }

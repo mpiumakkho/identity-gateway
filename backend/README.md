@@ -62,6 +62,7 @@ BOOTSTRAP_OPERATOR_ROLE=OPERATIONS
 - `GET /api/verification/sessions/{transactionId}`
 - `POST /api/verification/sessions`
 - `PUT /api/verification/sessions/{transactionId}/manual-identity`
+- `PUT /api/verification/sessions/{transactionId}/dip-chip-payload`
 
 ## Security Notes
 
