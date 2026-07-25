@@ -17,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.UUID;
 
+import static com.identitygateway.identity.IdentityDataProtector.maskNationalId;
+
 @Service
 public class DopaValidationService {
 
@@ -135,11 +137,4 @@ public class DopaValidationService {
         );
     }
 
-    private static String maskNationalId(String nationalId) {
-        if (nationalId == null || nationalId.length() != 13) {
-            return "*************";
-        }
-
-        return nationalId.substring(0, 3) + "******" + nationalId.substring(9);
-    }
 }

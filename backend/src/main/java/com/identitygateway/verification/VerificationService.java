@@ -17,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.UUID;
 
+import static com.identitygateway.identity.IdentityDataProtector.maskNationalId;
+
 @Service
 public class VerificationService {
 
@@ -379,6 +381,7 @@ public class VerificationService {
                 ))
                 .orElse(null);
     }
+
     private VerificationSessionResponse toResponse(VerificationSessionEntity session) {
         return new VerificationSessionResponse(
                 session.getId(),
@@ -428,13 +431,5 @@ public class VerificationService {
                 SessionOperatorResponse.from(closeout.getDecidedBy()),
                 closeout.getDecidedAt()
         );
-    }
-
-    private static String maskNationalId(String nationalId) {
-        if (nationalId == null || nationalId.length() != 13) {
-            return "*************";
-        }
-
-        return nationalId.substring(0, 3) + "******" + nationalId.substring(9);
     }
 }

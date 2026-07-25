@@ -10,6 +10,7 @@ Current backend modules:
 
 - `auth`: operator login, user repository, BCrypt password verification, active session controls, self-service password changes, and admin operator management
 - `verification`: persisted verification method catalog, system health, dashboard metrics, persisted session creation, transaction inquiry, enriched transaction detail, manual identity capture, Dip Chip payload intake, and decision closeout
+- `identity`: shared citizen identity data protection and masking helpers
 - `dopa`: citizen registry validation, result persistence, validation history, and audit-safe response mapping
 - `audit`: persisted operator, authentication, and transaction audit timeline with admin inquiry
 - `config`: CORS and Spring Security configuration
@@ -17,7 +18,6 @@ Current backend modules:
 
 Planned backend modules:
 
-- `identity`: citizen identity models and validation
 - `dipchip`: citizen-card reader payload intake and normalization
 
 ## Database
@@ -53,6 +53,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 17. System health flow: service and database readiness for operators. Done with a DB-backed health response and console refresh panel.
 18. Persisted method catalog flow: verification method options stored in PostgreSQL and served from the catalog. Done with Flyway seed data, repository-backed catalog responses, and disabled-method enforcement on session creation.
 19. Method catalog management flow: admin control of enabled intake methods. Done with admin catalog endpoints, audit events, security rules, and console toggles.
+20. Identity data protection flow: shared masking for citizen identity data. Done with a common identity helper used by verification and DOPA responses.
 
 ## Data Handling
 
