@@ -73,6 +73,10 @@ public class VerificationSessionEntity {
         return status;
     }
 
+    public void markIdentityCaptured() {
+        status = VerificationStatus.IDENTITY_CAPTURED;
+    }
+
     public OperatorUser getCreatedBy() {
         return createdBy;
     }

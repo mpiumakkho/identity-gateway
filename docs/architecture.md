@@ -9,7 +9,7 @@ The backend exposes REST APIs under `/api`. Controllers stay thin and delegate b
 Current backend modules:
 
 - `auth`: operator login, user repository, BCrypt password verification
-- `verification`: verification method catalog and persisted session creation
+- `verification`: verification method catalog, persisted session creation, and manual identity capture
 - `config`: CORS and Spring Security configuration
 - `common`: shared API response and error handling
 

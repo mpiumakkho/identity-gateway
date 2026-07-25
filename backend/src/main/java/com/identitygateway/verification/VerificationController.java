@@ -9,6 +9,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -49,5 +50,13 @@ public class VerificationController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(verificationService.startSession(operator, request)));
+    }
+
+    @PutMapping("/sessions/{transactionId}/manual-identity")
+    public ApiResponse<ManualIdentityResponse> saveManualIdentity(
+            @PathVariable UUID transactionId,
+            @Valid @RequestBody ManualIdentityRequest request
+    ) {
+        return ApiResponse.ok(verificationService.saveManualIdentity(transactionId, request));
     }
 }

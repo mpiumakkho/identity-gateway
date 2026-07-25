@@ -11,6 +11,8 @@ type RequestOptions = {
   payload?: unknown;
 };
 
+type HttpMethod = "GET" | "POST" | "PUT";
+
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
@@ -31,7 +33,11 @@ export async function postJson<T>(path: string, payload?: unknown, options: Requ
   return requestJson<T>(path, "POST", { ...options, payload });
 }
 
-async function requestJson<T>(path: string, method: "GET" | "POST", options: RequestOptions): Promise<ApiResponse<T>> {
+export async function putJson<T>(path: string, payload?: unknown, options: RequestOptions = {}): Promise<ApiResponse<T>> {
+  return requestJson<T>(path, "PUT", { ...options, payload });
+}
+
+async function requestJson<T>(path: string, method: HttpMethod, options: RequestOptions): Promise<ApiResponse<T>> {
   const headers = new Headers();
 
   if (options.payload !== undefined) {

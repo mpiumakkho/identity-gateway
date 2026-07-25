@@ -19,6 +19,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -29,6 +30,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -121,6 +123,64 @@ class VerificationControllerTest {
         mockMvc.perform(post("/api/verification/sessions")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"method\":\"\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("error"))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))
+                .andExpect(jsonPath("$.message", not(blankOrNullString())));
+    }
+
+    @Test
+    void saveManualIdentityReturnsCapturedIdentity() throws Exception {
+        UUID transactionId = UUID.fromString("b9d38258-8ec4-4645-a6ca-e901e1c1766a");
+        ManualIdentityResponse response = new ManualIdentityResponse(
+                transactionId,
+                "IDENTITY_CAPTURED",
+                "123******0123",
+                "Mr.",
+                "Somchai",
+                "Jaidee",
+                LocalDate.parse("1990-01-31"),
+                Instant.parse("2026-07-25T01:15:00Z")
+        );
+        when(verificationService.saveManualIdentity(any(UUID.class), any(ManualIdentityRequest.class))).thenReturn(response);
+
+        mockMvc.perform(put("/api/verification/sessions/{transactionId}/manual-identity", transactionId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "nationalId": "1234567890123",
+                                  "title": "Mr.",
+                                  "firstName": "Somchai",
+                                  "lastName": "Jaidee",
+                                  "dateOfBirth": "1990-01-31",
+                                  "laserCode": "JT1234567890"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("success"))
+                .andExpect(jsonPath("$.data.transactionId").value(transactionId.toString()))
+                .andExpect(jsonPath("$.data.sessionStatus").value("IDENTITY_CAPTURED"))
+                .andExpect(jsonPath("$.data.maskedNationalId").value("123******0123"))
+                .andExpect(jsonPath("$.data.firstName").value("Somchai"))
+                .andExpect(jsonPath("$.data.laserCode").doesNotExist());
+    }
+
+    @Test
+    void saveManualIdentityRejectsInvalidNationalId() throws Exception {
+        UUID transactionId = UUID.fromString("b9d38258-8ec4-4645-a6ca-e901e1c1766a");
+
+        mockMvc.perform(put("/api/verification/sessions/{transactionId}/manual-identity", transactionId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                  "nationalId": "123",
+                                  "title": "Mr.",
+                                  "firstName": "Somchai",
+                                  "lastName": "Jaidee",
+                                  "dateOfBirth": "1990-01-31",
+                                  "laserCode": "JT1234567890"
+                                }
+                                """))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.status").value("error"))
                 .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"))

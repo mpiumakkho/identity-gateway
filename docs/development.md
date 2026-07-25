@@ -48,4 +48,5 @@ Frontend runs at `http://127.0.0.1:7000`. Vite uses `strictPort`, so it will fai
 - Add validation annotations to request DTOs.
 - Keep integration URLs and credentials in environment-specific config.
 - Add tests beside domain logic as the workflow becomes concrete.
+- Do not return raw sensitive identity inputs that are only needed for backend processing.
 - Build each verification flow independently before connecting it to the next flow.

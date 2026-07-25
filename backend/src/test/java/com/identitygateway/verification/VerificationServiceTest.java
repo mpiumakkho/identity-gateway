@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,13 +29,20 @@ class VerificationServiceTest {
     private VerificationSessionRepository verificationSessionRepository;
 
     @Mock
+    private ManualIdentityEntryRepository manualIdentityEntryRepository;
+
+    @Mock
     private OperatorUserRepository operatorUserRepository;
 
     private VerificationService verificationService;
 
     @BeforeEach
     void setUp() {
-        verificationService = new VerificationService(verificationSessionRepository, operatorUserRepository);
+        verificationService = new VerificationService(
+                verificationSessionRepository,
+                manualIdentityEntryRepository,
+                operatorUserRepository
+        );
     }
 
     @Test
@@ -48,7 +56,7 @@ class VerificationServiceTest {
 
     @Test
     void recentSessionsReturnsLatestTransactions() {
-        VerificationSessionEntity entity = sessionEntity();
+        VerificationSessionEntity entity = sessionEntity(VerificationMethod.DIP_CHIP);
         when(verificationSessionRepository.findTop20ByOrderByCreatedAtDesc()).thenReturn(List.of(entity));
 
         List<VerificationSessionResponse> responses = verificationService.recentSessions();
@@ -60,7 +68,7 @@ class VerificationServiceTest {
 
     @Test
     void sessionReturnsTransactionDetail() {
-        VerificationSessionEntity entity = sessionEntity();
+        VerificationSessionEntity entity = sessionEntity(VerificationMethod.DIP_CHIP);
         when(verificationSessionRepository.findDetailById(entity.getId())).thenReturn(Optional.of(entity));
 
         VerificationSessionResponse response = verificationService.session(entity.getId());
@@ -108,9 +116,42 @@ class VerificationServiceTest {
                 .hasMessage("Unsupported verification method: VIDEO_CALL");
     }
 
-    private static VerificationSessionEntity sessionEntity() {
+    @Test
+    void saveManualIdentityCapturesManualEntryAndUpdatesSessionStatus() {
+        VerificationSessionEntity session = sessionEntity(VerificationMethod.MANUAL_ENTRY);
+        ManualIdentityRequest request = manualRequest();
+        when(verificationSessionRepository.findDetailById(session.getId())).thenReturn(Optional.of(session));
+        when(manualIdentityEntryRepository.findBySessionId(session.getId())).thenReturn(Optional.empty());
+        when(manualIdentityEntryRepository.save(any(ManualIdentityEntry.class)))
+                .thenAnswer(invocation -> {
+                    ManualIdentityEntry entry = invocation.getArgument(0);
+                    entry.prePersist();
+                    return entry;
+                });
+
+        ManualIdentityResponse response = verificationService.saveManualIdentity(session.getId(), request);
+
+        assertThat(response.transactionId()).isEqualTo(session.getId());
+        assertThat(response.sessionStatus()).isEqualTo("IDENTITY_CAPTURED");
+        assertThat(response.maskedNationalId()).isEqualTo("123******0123");
+        assertThat(response.firstName()).isEqualTo("Somchai");
+        assertThat(response.lastName()).isEqualTo("Jaidee");
+        assertThat(response.updatedAt()).isNotNull();
+    }
+
+    @Test
+    void saveManualIdentityRejectsDipChipSession() {
+        VerificationSessionEntity session = sessionEntity(VerificationMethod.DIP_CHIP);
+        when(verificationSessionRepository.findDetailById(session.getId())).thenReturn(Optional.of(session));
+
+        assertThatThrownBy(() -> verificationService.saveManualIdentity(session.getId(), manualRequest()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Manual identity can only be captured for MANUAL_ENTRY sessions.");
+    }
+
+    private static VerificationSessionEntity sessionEntity(VerificationMethod method) {
         OperatorUser operator = OperatorUser.create("operator", "hash", "Operations User", OperatorRole.OPERATIONS);
-        VerificationSessionEntity entity = VerificationSessionEntity.create(VerificationMethod.DIP_CHIP, operator);
+        VerificationSessionEntity entity = VerificationSessionEntity.create(method, operator);
         entity.prePersist();
         return entity;
     }
@@ -122,6 +163,17 @@ class VerificationServiceTest {
                 "Operations User",
                 OperatorRole.OPERATIONS,
                 Instant.parse("2026-07-25T08:00:00Z")
+        );
+    }
+
+    private static ManualIdentityRequest manualRequest() {
+        return new ManualIdentityRequest(
+                "1234567890123",
+                "Mr.",
+                "Somchai",
+                "Jaidee",
+                LocalDate.parse("1990-01-31"),
+                "JT1234567890"
         );
     }
 }

@@ -1,22 +1,8 @@
 import { useEffect, useState } from "react";
 import { ApiError, getJson, postJson } from "../../api/client";
 import type { AuthSession } from "../auth/types";
-
-type MethodId = "DIP_CHIP" | "MANUAL_ENTRY";
-
-type SessionOperator = {
-  operatorId: string;
-  username: string;
-  displayName: string;
-};
-
-type VerificationSession = {
-  transactionId: string;
-  method: MethodId;
-  status: string;
-  createdBy: SessionOperator | null;
-  createdAt: string;
-};
+import { ManualIdentityPanel } from "./ManualIdentityPanel";
+import type { MethodId, VerificationSession } from "./types";
 
 const methods: Array<{ id: MethodId; label: string; detail: string }> = [
   { id: "DIP_CHIP", label: "Dip Chip", detail: "Card reader" },
@@ -39,6 +25,7 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
   const [isStarting, setIsStarting] = useState(false);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
+  const activeWorkflowIndex = activeSession?.status === "IDENTITY_CAPTURED" ? 1 : 0;
   const operatorInitials = (operator.displayName || operator.username).slice(0, 2).toUpperCase();
 
   useEffect(() => {
@@ -85,6 +72,19 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
     setError(err instanceof Error ? err.message : fallback);
   }
 
+  function mergeSession(nextSession: VerificationSession) {
+    setActiveSession(nextSession);
+    setSessions((current) => {
+      const exists = current.some((session) => session.transactionId === nextSession.transactionId);
+
+      if (!exists) {
+        return [nextSession, ...current];
+      }
+
+      return current.map((session) => (session.transactionId === nextSession.transactionId ? nextSession : session));
+    });
+  }
+
   async function startSession() {
     setIsStarting(true);
     setError("");
@@ -97,8 +97,7 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
       );
 
       if (response.data) {
-        setActiveSession(response.data);
-        setSessions((current) => [response.data as VerificationSession, ...current.filter((session) => session.transactionId !== response.data?.transactionId)]);
+        mergeSession(response.data);
       }
     } catch (err) {
       handleApiError(err, "Unable to start verification session.");
@@ -117,18 +116,13 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
       });
 
       if (response.data) {
-        setActiveSession(response.data);
-        setSessions((current) => current.map((session) => (session.transactionId === transactionId ? response.data as VerificationSession : session)));
+        mergeSession(response.data);
       }
     } catch (err) {
       handleApiError(err, "Unable to load verification session.");
     } finally {
       setIsLoadingDetail(false);
     }
-  }
-
-  function methodLabel(method: MethodId) {
-    return methods.find((item) => item.id === method)?.label ?? method;
   }
 
   return (
@@ -207,23 +201,27 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
           </header>
 
           <div className="mb-5 grid grid-cols-2 gap-2 rounded-lg border border-slate-200 bg-white p-2 shadow-sm sm:grid-cols-4">
-            {workflowSteps.map((step, index) => (
-              <div key={step} className="flex items-center gap-2 rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-600">
-                <span className={index === 0 ? "grid size-6 place-items-center rounded-md bg-teal-600 text-xs font-bold text-white" : "grid size-6 place-items-center rounded-md bg-slate-200 text-xs font-bold text-slate-600"}>
-                  {index + 1}
-                </span>
-                <span className="font-medium">{step}</span>
-              </div>
-            ))}
+            {workflowSteps.map((step, index) => {
+              const active = activeSession ? index <= activeWorkflowIndex : index === 0;
+
+              return (
+                <div key={step} className="flex items-center gap-2 rounded-md bg-slate-50 px-3 py-2 text-sm text-slate-600">
+                  <span className={active ? "grid size-6 place-items-center rounded-md bg-teal-600 text-xs font-bold text-white" : "grid size-6 place-items-center rounded-md bg-slate-200 text-xs font-bold text-slate-600"}>
+                    {index + 1}
+                  </span>
+                  <span className="font-medium">{step}</span>
+                </div>
+              );
+            })}
           </div>
 
-          {error && (
+          {error ? (
             <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700" role="alert">
               {error}
             </div>
-          )}
+          ) : null}
 
-          <div className="grid gap-5 xl:grid-cols-[minmax(340px,520px)_1fr]">
+          <div className="grid gap-5 xl:grid-cols-[minmax(320px,500px)_1fr]">
             <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="method-title">
               <div className="mb-5 flex gap-3">
                 <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-teal-50 text-sm font-black text-teal-700">01</span>
@@ -270,52 +268,62 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
               </button>
             </section>
 
-            <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="status-title">
-              <div className="mb-5 flex items-start justify-between gap-3">
-                <div className="flex gap-3">
-                  <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-slate-100 text-sm font-black text-slate-700">02</span>
-                  <div>
-                    <h2 id="status-title" className="text-xl font-bold text-slate-950">Session Detail</h2>
-                    <p className="mt-1 text-sm text-slate-500">Current transaction state.</p>
+            <div className="grid gap-5">
+              <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm" aria-labelledby="status-title">
+                <div className="mb-5 flex items-start justify-between gap-3">
+                  <div className="flex gap-3">
+                    <span className="grid size-9 shrink-0 place-items-center rounded-lg bg-slate-100 text-sm font-black text-slate-700">02</span>
+                    <div>
+                      <h2 id="status-title" className="text-xl font-bold text-slate-950">Session Detail</h2>
+                      <p className="mt-1 text-sm text-slate-500">Current transaction state.</p>
+                    </div>
                   </div>
+                  {isLoadingDetail ? <span className="text-xs font-semibold text-slate-400">Loading</span> : null}
                 </div>
-                {isLoadingDetail ? <span className="text-xs font-semibold text-slate-400">Loading</span> : null}
-              </div>
 
-              {activeSession ? (
-                <dl className="grid gap-4">
-                  <div className="border-b border-slate-100 pb-4">
-                    <dt className="text-xs font-bold uppercase text-slate-400">Transaction ID</dt>
-                    <dd className="mt-1 break-all text-sm font-semibold text-slate-950">{activeSession.transactionId}</dd>
-                  </div>
-                  <div className="grid gap-4 border-b border-slate-100 pb-4 sm:grid-cols-3">
-                    <div>
-                      <dt className="text-xs font-bold uppercase text-slate-400">Method</dt>
-                      <dd className="mt-1 text-sm font-semibold text-slate-950">{methodLabel(activeSession.method)}</dd>
+                {activeSession ? (
+                  <dl className="grid gap-4">
+                    <div className="border-b border-slate-100 pb-4">
+                      <dt className="text-xs font-bold uppercase text-slate-400">Transaction ID</dt>
+                      <dd className="mt-1 break-all text-sm font-semibold text-slate-950">{activeSession.transactionId}</dd>
+                    </div>
+                    <div className="grid gap-4 border-b border-slate-100 pb-4 sm:grid-cols-3">
+                      <div>
+                        <dt className="text-xs font-bold uppercase text-slate-400">Method</dt>
+                        <dd className="mt-1 text-sm font-semibold text-slate-950">{methodLabel(activeSession.method)}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs font-bold uppercase text-slate-400">Status</dt>
+                        <dd className={`mt-1 text-sm font-semibold ${statusClassName(activeSession.status)}`}>{activeSession.status}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-xs font-bold uppercase text-slate-400">Created</dt>
+                        <dd className="mt-1 text-sm font-semibold text-slate-950">{new Date(activeSession.createdAt).toLocaleString()}</dd>
+                      </div>
                     </div>
                     <div>
-                      <dt className="text-xs font-bold uppercase text-slate-400">Status</dt>
-                      <dd className="mt-1 text-sm font-semibold text-teal-700">{activeSession.status}</dd>
+                      <dt className="text-xs font-bold uppercase text-slate-400">Created By</dt>
+                      <dd className="mt-1 text-sm font-semibold text-slate-950">{activeSession.createdBy?.displayName ?? "Unknown operator"}</dd>
                     </div>
+                  </dl>
+                ) : (
+                  <div className="grid min-h-44 place-items-center rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 text-center">
                     <div>
-                      <dt className="text-xs font-bold uppercase text-slate-400">Created</dt>
-                      <dd className="mt-1 text-sm font-semibold text-slate-950">{new Date(activeSession.createdAt).toLocaleString()}</dd>
+                      <strong className="block text-sm font-bold text-slate-800">No active session</strong>
+                      <span className="mt-1 block text-sm text-slate-500">Choose a method to create the first transaction.</span>
                     </div>
                   </div>
-                  <div>
-                    <dt className="text-xs font-bold uppercase text-slate-400">Created By</dt>
-                    <dd className="mt-1 text-sm font-semibold text-slate-950">{activeSession.createdBy?.displayName ?? "Unknown operator"}</dd>
-                  </div>
-                </dl>
-              ) : (
-                <div className="grid min-h-44 place-items-center rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 text-center">
-                  <div>
-                    <strong className="block text-sm font-bold text-slate-800">No active session</strong>
-                    <span className="mt-1 block text-sm text-slate-500">Choose a method to create the first transaction.</span>
-                  </div>
-                </div>
-              )}
-            </section>
+                )}
+              </section>
+
+              <ManualIdentityPanel
+                accessToken={operator.accessToken}
+                session={activeSession}
+                onError={setError}
+                onSaved={mergeSession}
+                onSessionExpired={onSessionExpired}
+              />
+            </div>
           </div>
 
           <section className="mt-5 rounded-lg border border-slate-200 bg-white p-5 shadow-sm" id="transactions" aria-labelledby="transactions-title">
@@ -355,7 +363,7 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
                           <span className="block truncate text-sm font-bold text-slate-950">{methodLabel(session.method)}</span>
                           <span className="mt-1 block truncate text-xs text-slate-500">{session.transactionId}</span>
                         </span>
-                        <span className="text-sm font-semibold text-teal-700">{session.status}</span>
+                        <span className={`text-sm font-semibold ${statusClassName(session.status)}`}>{session.status}</span>
                         <span className="text-sm text-slate-500">{new Date(session.createdAt).toLocaleDateString()}</span>
                       </button>
                     );
@@ -370,4 +378,12 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
       </div>
     </main>
   );
+}
+
+function methodLabel(method: MethodId) {
+  return methods.find((item) => item.id === method)?.label ?? method;
+}
+
+function statusClassName(status: string) {
+  return status === "IDENTITY_CAPTURED" ? "text-indigo-700" : "text-teal-700";
 }
