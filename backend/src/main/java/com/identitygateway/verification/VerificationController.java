@@ -35,6 +35,20 @@ public class VerificationController {
         return ApiResponse.ok(verificationService.methods());
     }
 
+    @GetMapping("/methods/catalog")
+    public ApiResponse<List<VerificationMethodResponse>> methodCatalog() {
+        return ApiResponse.ok(verificationService.methodCatalog());
+    }
+
+    @PutMapping("/methods/{methodId}/enabled")
+    public ApiResponse<VerificationMethodResponse> updateMethodStatus(
+            @AuthenticationPrincipal AuthenticatedOperator operator,
+            @PathVariable String methodId,
+            @Valid @RequestBody UpdateVerificationMethodStatusRequest request
+    ) {
+        return ApiResponse.ok(verificationService.updateMethodStatus(operator, methodId, request));
+    }
+
     @GetMapping("/dashboard")
     public ApiResponse<VerificationDashboardResponse> dashboard() {
         return ApiResponse.ok(verificationService.dashboard());

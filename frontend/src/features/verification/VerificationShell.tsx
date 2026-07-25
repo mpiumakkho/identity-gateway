@@ -8,6 +8,7 @@ import type { AuthSession } from "../auth/types";
 import { DipChipPanel } from "./DipChipPanel";
 import { DopaPanel } from "./DopaPanel";
 import { ManualIdentityPanel } from "./ManualIdentityPanel";
+import { MethodCatalogPanel } from "./MethodCatalogPanel";
 import { OperationsDashboardPanel } from "./OperationsDashboardPanel";
 import { SummaryPanel } from "./SummaryPanel";
 import { SystemHealthPanel } from "./SystemHealthPanel";
@@ -44,10 +45,15 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
   const [isLookingUpTransaction, setIsLookingUpTransaction] = useState(false);
   const activeWorkflowIndex = workflowIndex(activeSession?.status);
   const operatorInitials = (operator.displayName || operator.username).slice(0, 2).toUpperCase();
-  const navigationItems = operator.role === "ADMIN" ? ["Verification", "Transactions", "Account", "Audit", "Operators"] : ["Verification", "Transactions", "Account"];
+  const navigationItems = operator.role === "ADMIN" ? ["Verification", "Transactions", "Methods", "Account", "Audit", "Operators"] : ["Verification", "Transactions", "Account"];
   const methods = methodCatalog.filter((method) => method.enabled);
-  const methodLabel = (method: MethodId) => methods.find((item) => item.id === method)?.label ?? method;
+  const methodLabel = (method: MethodId) => methodCatalog.find((item) => item.id === method)?.label ?? method;
 
+  function applyMethodCatalog(nextCatalog: VerificationMethodOption[]) {
+    const enabledMethods = nextCatalog.filter((method) => method.enabled);
+    setMethodCatalog(nextCatalog);
+    setSelectedMethod((current) => (enabledMethods.some((method) => method.id === current) ? current : enabledMethods[0]?.id ?? current));
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -59,9 +65,7 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
         });
 
         if (!cancelled) {
-          const enabledMethods = (response.data ?? defaultMethods).filter((method) => method.enabled);
-          setMethodCatalog(enabledMethods.length > 0 ? response.data ?? defaultMethods : defaultMethods);
-          setSelectedMethod((current) => (enabledMethods.some((method) => method.id === current) ? current : enabledMethods[0]?.id ?? "DIP_CHIP"));
+          applyMethodCatalog(response.data ?? []);
         }
       } catch (err) {
         if (!cancelled) {
@@ -336,6 +340,9 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
               </div>
 
               <div className="grid gap-3">
+                {methods.length === 0 ? (
+                  <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-6 text-center text-sm font-medium text-slate-500">No enabled methods.</div>
+                ) : null}
                 {methods.map((method) => {
                   const selected = method.id === selectedMethod;
 
@@ -366,7 +373,7 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
                 className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-slate-950 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                 type="button"
                 onClick={startSession}
-                disabled={isStarting}
+                disabled={isStarting || methods.length === 0}
               >
                 {isStarting ? "Starting..." : "Start Session"}
               </button>
@@ -653,6 +660,10 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
               <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm font-medium text-slate-500">No transactions yet.</div>
             )}
           </section>
+
+          {operator.role === "ADMIN" ? (
+            <MethodCatalogPanel accessToken={operator.accessToken} onCatalogChanged={applyMethodCatalog} onError={setError} onSessionExpired={onSessionExpired} />
+          ) : null}
 
           <AccountSecurityPanel
             accessToken={operator.accessToken}

@@ -52,6 +52,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 16. DOPA validation history flow: latest validation attempts per transaction. Done with safe attempt responses, transaction-scoped endpoint, and console history list.
 17. System health flow: service and database readiness for operators. Done with a DB-backed health response and console refresh panel.
 18. Persisted method catalog flow: verification method options stored in PostgreSQL and served from the catalog. Done with Flyway seed data, repository-backed catalog responses, and disabled-method enforcement on session creation.
+19. Method catalog management flow: admin control of enabled intake methods. Done with admin catalog endpoints, audit events, security rules, and console toggles.
 
 ## Data Handling
 

@@ -5,6 +5,7 @@ import com.identitygateway.auth.OperatorRole;
 import com.identitygateway.auth.OperatorUser;
 import com.identitygateway.auth.OperatorUserRepository;
 import com.identitygateway.common.error.ResourceNotFoundException;
+import com.identitygateway.audit.AuditEventType;
 import com.identitygateway.audit.AuditService;
 import com.identitygateway.dopa.DopaGatewayResult;
 import com.identitygateway.dopa.DopaIdentitySource;
@@ -89,6 +90,53 @@ class VerificationServiceTest {
                 .extracting(VerificationMethodResponse::id)
                 .containsExactly("DIP_CHIP", "MANUAL_ENTRY");
     }
+
+    @Test
+    void methodCatalogReturnsAllConfiguredMethods() {
+        when(verificationMethodRepository.findAllByOrderBySortOrderAscIdAsc()).thenReturn(List.of(
+                VerificationMethodEntity.create(VerificationMethod.DIP_CHIP, false, 10),
+                VerificationMethodEntity.create(VerificationMethod.MANUAL_ENTRY, true, 20)
+        ));
+
+        List<VerificationMethodResponse> methods = verificationService.methodCatalog();
+
+        assertThat(methods)
+                .extracting(VerificationMethodResponse::enabled)
+                .containsExactly(false, true);
+    }
+
+    @Test
+    void updateMethodStatusChangesCatalogEntryAndAuditsEvent() {
+        AuthenticatedOperator authenticatedOperator = authenticatedOperator();
+        VerificationMethodEntity method = VerificationMethodEntity.create(VerificationMethod.DIP_CHIP, true, 10);
+        when(verificationMethodRepository.findById("DIP_CHIP")).thenReturn(Optional.of(method));
+
+        VerificationMethodResponse response = verificationService.updateMethodStatus(
+                authenticatedOperator,
+                "DIP_CHIP",
+                new UpdateVerificationMethodStatusRequest(false)
+        );
+
+        assertThat(response.enabled()).isFalse();
+        verify(auditService).recordOperatorEvent(
+                eq(AuditEventType.VERIFICATION_METHOD_STATUS_CHANGED),
+                eq(authenticatedOperator.operatorId()),
+                eq("Verification method status changed."),
+                any()
+        );
+    }
+
+    @Test
+    void updateMethodStatusRejectsUnknownMethod() {
+        assertThatThrownBy(() -> verificationService.updateMethodStatus(
+                authenticatedOperator(),
+                "VIDEO_CALL",
+                new UpdateVerificationMethodStatusRequest(true)
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Unsupported verification method: VIDEO_CALL");
+    }
+
 
     @Test
     void dashboardReturnsGroupedTransactionMetrics() {

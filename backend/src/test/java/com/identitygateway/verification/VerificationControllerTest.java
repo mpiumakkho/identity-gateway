@@ -77,6 +77,46 @@ class VerificationControllerTest {
                 .andExpect(jsonPath("$.data[1].label").value("Manual Entry"))
                 .andExpect(jsonPath("$.data[1].enabled").value(true));
     }
+    @Test
+    void methodCatalogReturnsAllVerificationMethods() throws Exception {
+        when(verificationService.methodCatalog()).thenReturn(List.of(
+                new VerificationMethodResponse("DIP_CHIP", "Dip Chip", "Read citizen card data from a supported reader.", false),
+                new VerificationMethodResponse("MANUAL_ENTRY", "Manual Entry", "Capture citizen data through a controlled form.", true)
+        ));
+
+        mockMvc.perform(get("/api/verification/methods/catalog"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data", hasSize(2)))
+                .andExpect(jsonPath("$.data[0].id").value("DIP_CHIP"))
+                .andExpect(jsonPath("$.data[0].enabled").value(false))
+                .andExpect(jsonPath("$.data[1].enabled").value(true));
+    }
+
+    @Test
+    void updateMethodStatusReturnsUpdatedMethod() throws Exception {
+        setAuthenticatedOperator();
+        when(verificationService.updateMethodStatus(any(AuthenticatedOperator.class), any(String.class), any(UpdateVerificationMethodStatusRequest.class)))
+                .thenReturn(new VerificationMethodResponse("DIP_CHIP", "Dip Chip", "Read citizen card data from a supported reader.", false));
+
+        mockMvc.perform(put("/api/verification/methods/{methodId}/enabled", "DIP_CHIP")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"enabled\":false}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.id").value("DIP_CHIP"))
+                .andExpect(jsonPath("$.data.enabled").value(false));
+    }
+
+    @Test
+    void updateMethodStatusRejectsMissingEnabledFlag() throws Exception {
+        setAuthenticatedOperator();
+
+        mockMvc.perform(put("/api/verification/methods/{methodId}/enabled", "DIP_CHIP")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value("error"))
+                .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+    }
 
     @Test
     void dashboardReturnsOperationsMetrics() throws Exception {

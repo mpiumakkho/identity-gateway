@@ -6,6 +6,8 @@ import java.util.List;
 
 public interface VerificationMethodRepository extends JpaRepository<VerificationMethodEntity, String> {
 
+    List<VerificationMethodEntity> findAllByOrderBySortOrderAscIdAsc();
+
     List<VerificationMethodEntity> findByEnabledTrueOrderBySortOrderAscIdAsc();
 
     boolean existsByIdAndEnabledTrue(String id);

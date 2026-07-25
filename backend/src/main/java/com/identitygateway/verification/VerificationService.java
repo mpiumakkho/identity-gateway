@@ -22,6 +22,7 @@ public class VerificationService {
 
     private static final String SESSION_NOT_FOUND_MESSAGE = "Verification session not found.";
     private static final String SESSION_CLOSED_MESSAGE = "Verification session is already closed.";
+    private static final String METHOD_NOT_FOUND_MESSAGE = "Verification method not found.";
 
     private final VerificationMethodRepository verificationMethodRepository;
     private final VerificationSessionRepository verificationSessionRepository;
@@ -55,8 +56,36 @@ public class VerificationService {
     @Transactional(readOnly = true)
     public List<VerificationMethodResponse> methods() {
         return verificationMethodRepository.findByEnabledTrueOrderBySortOrderAscIdAsc().stream()
-                .map(method -> new VerificationMethodResponse(method.getId(), method.getLabel(), method.getDescription(), method.isEnabled()))
+                .map(this::toMethodResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<VerificationMethodResponse> methodCatalog() {
+        return verificationMethodRepository.findAllByOrderBySortOrderAscIdAsc().stream()
+                .map(this::toMethodResponse)
+                .toList();
+    }
+
+    @Transactional
+    public VerificationMethodResponse updateMethodStatus(
+            AuthenticatedOperator operator,
+            String methodId,
+            UpdateVerificationMethodStatusRequest request
+    ) {
+        VerificationMethod method = VerificationMethod.from(methodId);
+        VerificationMethodEntity methodEntity = verificationMethodRepository.findById(method.name())
+                .orElseThrow(() -> new ResourceNotFoundException(METHOD_NOT_FOUND_MESSAGE));
+
+        methodEntity.updateEnabled(request.enabled());
+        auditService.recordOperatorEvent(
+                AuditEventType.VERIFICATION_METHOD_STATUS_CHANGED,
+                operator.operatorId(),
+                "Verification method status changed.",
+                AuditService.metadata("method", method.name(), "enabled", request.enabled().toString())
+        );
+
+        return toMethodResponse(methodEntity);
     }
 
     @Transactional(readOnly = true)
@@ -201,6 +230,9 @@ public class VerificationService {
         return toCloseoutResponse(session, closeout);
     }
 
+    private VerificationMethodResponse toMethodResponse(VerificationMethodEntity method) {
+        return new VerificationMethodResponse(method.getId(), method.getLabel(), method.getDescription(), method.isEnabled());
+    }
     private void requireMethodEnabled(VerificationMethod method) {
         if (!verificationMethodRepository.existsByIdAndEnabledTrue(method.name())) {
             throw new IllegalArgumentException("Verification method is disabled: " + method.name());
