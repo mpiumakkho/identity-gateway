@@ -389,7 +389,7 @@ Invalid payloads return `400` with code `VALIDATION_ERROR`. Non-manual sessions 
 
 ### `PUT /verification/sessions/{transactionId}/dip-chip-payload`
 
-Captures or updates normalized citizen-card payload data for a `DIP_CHIP` transaction session. Requires authentication. The session moves to `IDENTITY_CAPTURED` when the card payload is saved. Text fields are normalized before persistence, and card expiry must be on or after the issue date. `laserCode` and `rawPayload` are accepted for backend processing and audit traceability but are not returned in API responses.
+Captures or updates normalized citizen-card payload data for a `DIP_CHIP` transaction session. Payload data can be typed manually or populated by the local Dip Chip reader bridge before submission. Requires authentication. The session moves to `IDENTITY_CAPTURED` when the card payload is saved. Text fields are normalized before persistence, and card expiry must be on or after the issue date. `laserCode` and `rawPayload` are accepted for backend processing and audit traceability but are not returned in API responses.
 
 Request:
 

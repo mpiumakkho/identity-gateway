@@ -48,6 +48,9 @@ npm run dev
 
 Frontend runs at `http://127.0.0.1:7000`. Vite uses `strictPort`, so it will fail fast if port 7000 is already occupied.
 
+## Dip Chip Reader Bridge
+
+For real card reads, run a local bridge service that wraps the selected reader SDK and exposes `POST /dip-chip/read` on `http://127.0.0.1:17520`. The frontend will use the bridge response to populate the Dip Chip form; the operator still saves the reviewed payload through the backend API.
 ## Conventions
 
 - Keep package names under `com.identitygateway`.

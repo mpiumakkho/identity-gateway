@@ -4,6 +4,7 @@ import { putJson } from "../../api/client";
 import { isAuthenticationRequired } from "../../api/errors";
 import { fieldInputClassName, fieldLabelClassName, fieldTextAreaClassName } from "./formStyles";
 import { nationalIdValidationMessage } from "./nationalId";
+import { readDipChipPayloadFromBridge } from "./dipChipReaderBridge";
 import type { DipChipPayload, DipChipPayloadResult, VerificationSession } from "./types";
 
 const emptyForm: DipChipPayload = {
@@ -33,13 +34,16 @@ type DipChipPanelProps = {
 export function DipChipPanel({ accessToken, session, onError, onSaved, onSessionExpired }: DipChipPanelProps) {
   const [form, setForm] = useState<DipChipPayload>(emptyForm);
   const [isSaving, setIsSaving] = useState(false);
+  const [isReading, setIsReading] = useState(false);
   const [localMessage, setLocalMessage] = useState("");
+  const [readerMessage, setReaderMessage] = useState("");
   const [lastSavedPayload, setLastSavedPayload] = useState<DipChipPayloadResult | null>(null);
   const canCapturePayload = session?.method === "DIP_CHIP";
 
   useEffect(() => {
     setForm(emptyForm);
     setLocalMessage("");
+    setReaderMessage("");
     setLastSavedPayload(null);
   }, [session?.transactionId]);
 
@@ -47,6 +51,28 @@ export function DipChipPanel({ accessToken, session, onError, onSaved, onSession
     setForm((current) => ({ ...current, [field]: value }));
   }
 
+  async function readFromReader() {
+    if (!session || !canCapturePayload) {
+      return;
+    }
+
+    setIsReading(true);
+    setReaderMessage("");
+    setLocalMessage("");
+    onError("");
+
+    try {
+      const payload = await readDipChipPayloadFromBridge();
+      setForm(payload);
+      setReaderMessage(`Card read from ${payload.readerName || "reader"}. Review and save the payload.`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to read card from reader bridge.";
+      setReaderMessage(message);
+      onError(message);
+    } finally {
+      setIsReading(false);
+    }
+  }
   async function submitPayload(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -115,6 +141,22 @@ export function DipChipPanel({ accessToken, session, onError, onSaved, onSession
         </div>
       ) : (
         <form className="grid gap-4" onSubmit={submitPayload}>
+          <div className="rounded-lg border border-cyan-100 bg-cyan-50/70 px-4 py-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-bold text-cyan-950">Reader Bridge</p>
+                {readerMessage ? <p className="mt-1 text-sm font-medium text-cyan-800" role="status">{readerMessage}</p> : null}
+              </div>
+              <button
+                className="inline-flex min-h-10 items-center justify-center rounded-lg bg-cyan-700 px-4 py-2 text-sm font-bold text-white transition hover:bg-cyan-600 disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                onClick={readFromReader}
+                disabled={isReading || isSaving}
+              >
+                {isReading ? "Reading..." : "Read Card"}
+              </button>
+            </div>
+          </div>
           <div className="grid gap-4 sm:grid-cols-[120px_1fr]">
             <label>
               <span className={fieldLabelClassName}>Title</span>

@@ -25,6 +25,16 @@ The app starts at the operator login screen. A successful login stores the issue
 
 The verification workspace shows system and database readiness, aggregate operations metrics, shows, filters, and sizes recent persisted sessions, looks up a transaction by ID, loads enabled intake methods from the backend catalog, allows a new session to be started, loads enriched session detail by transaction ID, captures manual identity details for `MANUAL_ENTRY` sessions, accepts normalized Dip Chip payloads for `DIP_CHIP` sessions, runs DOPA validation after identity data is captured, shows DOPA validation history, closes verified transactions with an operator decision summary, and displays the transaction audit timeline. Operators can review active sessions, revoke other sessions, and change their own password from the account security panel. Admin operators also get method catalog controls, audit inquiry, and operator management panels for event review, account creation, password changes, and disabling access.
 
+## Dip Chip Reader Bridge
+
+The Dip Chip panel can read card data from a localhost native bridge before saving the reviewed payload to the backend.
+
+```text
+VITE_DIP_CHIP_BRIDGE_URL=http://127.0.0.1:17520
+VITE_DIP_CHIP_BRIDGE_TIMEOUT_MS=15000
+```
+
+The bridge contract is documented in `docs/dip-chip-reader-bridge.md`.
 ## Notes
 
 Vite uses `strictPort`, so development fails fast if port 7000 is already occupied.
