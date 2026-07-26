@@ -58,6 +58,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 24. Validation error detail flow: field-level validation details in API error responses. Done with an envelope-level errors field and MVC coverage.
 25. Frontend validation error handling flow: field-level validation details consumed by the React API client. Done with typed error payloads, formatted operator messages, and envelope consistency for authentication failures.
 26. Authentication error envelope flow: unauthorized responses serialized through the shared API envelope. Done with the common response factory and security integration coverage.
+27. Authorization error envelope flow: forbidden responses serialized through the shared API envelope. Done with a REST access-denied handler and security integration coverage.
 
 ## Data Handling
 

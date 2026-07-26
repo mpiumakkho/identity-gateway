@@ -100,12 +100,32 @@ class SecurityIntegrationTest {
                 .andExpect(jsonPath("$.timestamp").exists());
     }
 
+    @Test
+    void adminEndpointsRejectOperatorsWithoutAdminRole() throws Exception {
+        String accessToken = "operator-token";
+        createSession(accessToken, OperatorRole.OPERATIONS);
+
+        mockMvc.perform(get("/api/verification/methods/catalog")
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value("error"))
+                .andExpect(jsonPath("$.code").value("ACCESS_DENIED"))
+                .andExpect(jsonPath("$.message").value("Access denied."))
+                .andExpect(jsonPath("$.data").doesNotExist())
+                .andExpect(jsonPath("$.errors").doesNotExist())
+                .andExpect(jsonPath("$.timestamp").exists());
+    }
+
     private void createSession(String accessToken) {
+        createSession(accessToken, OperatorRole.OPERATIONS);
+    }
+
+    private void createSession(String accessToken, OperatorRole role) {
         OperatorUser operator = operatorUserRepository.save(OperatorUser.create(
-                "operator",
+                "operator-" + role.name().toLowerCase(),
                 passwordEncoder.encode("StrongPassword123!"),
                 "Operations User",
-                OperatorRole.OPERATIONS
+                role
         ));
 
         operatorSessionRepository.save(OperatorSession.create(
