@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { ApiError, deleteJson, getJson, putJson } from "../../api/client";
+import { deleteJson, getJson, putJson } from "../../api/client";
+import { handleApiFailure } from "../../api/errors";
 
 type AccountSecurityPanelProps = {
   accessToken: string;
@@ -66,12 +67,7 @@ export function AccountSecurityPanel({ accessToken, onError, onSessionExpired }:
   }, [accessToken]);
 
   function handleApiError(err: unknown, fallback: string) {
-    if (err instanceof ApiError && err.status === 401 && err.code === "AUTHENTICATION_REQUIRED") {
-      onSessionExpired();
-      return;
-    }
-
-    onError(err instanceof Error ? err.message : fallback);
+    handleApiFailure(err, fallback, onSessionExpired, onError);
   }
 
   async function refreshSessions() {

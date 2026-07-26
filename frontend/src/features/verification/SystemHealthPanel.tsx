@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ApiError, getJson } from "../../api/client";
+import { getJson } from "../../api/client";
+import { isAuthenticationRequired } from "../../api/errors";
 
 type SystemHealthPanelProps = {
   accessToken: string;
@@ -26,7 +27,7 @@ export function SystemHealthPanel({ accessToken, onError, onSessionExpired }: Sy
       const response = await getJson<SystemHealth>("/api/system/health", { accessToken });
       setHealth(response.data);
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
+      if (isAuthenticationRequired(err)) {
         onSessionExpired();
         return;
       }
@@ -55,7 +56,7 @@ export function SystemHealthPanel({ accessToken, onError, onSessionExpired }: Sy
           return;
         }
 
-        if (err instanceof ApiError && err.status === 401) {
+        if (isAuthenticationRequired(err)) {
           onSessionExpired();
           return;
         }

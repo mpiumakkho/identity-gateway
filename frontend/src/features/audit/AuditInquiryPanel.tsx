@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ApiError, getJson } from "../../api/client";
+import { getJson } from "../../api/client";
+import { isAuthenticationRequired } from "../../api/errors";
 import type { AuditEvent } from "../verification/types";
 
 type AuditInquiryPanelProps = {
@@ -57,7 +58,7 @@ export function AuditInquiryPanel({ accessToken, onError, onSessionExpired }: Au
           return;
         }
 
-        if (err instanceof ApiError && err.status === 401) {
+        if (isAuthenticationRequired(err)) {
           onSessionExpired();
           return;
         }

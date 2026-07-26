@@ -19,7 +19,7 @@ npm run build
 
 ## Login Flow
 
-The API client preserves field-level validation errors from backend responses and formats them for operator-facing messages.
+The API client preserves field-level validation errors from backend responses and formats them for operator-facing messages. Authentication-required responses clear the session, while access-denied responses stay in the workspace and show an operator-facing error.
 
 The app starts at the operator login screen. A successful login stores the issued bearer token in `sessionStorage` for the current browser tab, sends it as `Authorization: Bearer <token>` for protected API calls, and clears it on sign out or expiry.
 

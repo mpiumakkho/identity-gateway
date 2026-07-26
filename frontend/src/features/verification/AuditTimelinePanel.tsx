@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ApiError, getJson } from "../../api/client";
+import { getJson } from "../../api/client";
+import { isAuthenticationRequired } from "../../api/errors";
 import type { AuditEvent, VerificationSession } from "./types";
 
 type AuditTimelinePanelProps = {
@@ -34,7 +35,7 @@ export function AuditTimelinePanel({ accessToken, session, onError, onSessionExp
           return;
         }
 
-        if (err instanceof ApiError && err.status === 401) {
+        if (isAuthenticationRequired(err)) {
           onSessionExpired();
           return;
         }

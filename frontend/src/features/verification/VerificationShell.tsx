@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { ApiError, getJson, postJson } from "../../api/client";
+import { getJson, postJson } from "../../api/client";
+import { handleApiFailure } from "../../api/errors";
 import { AccountSecurityPanel } from "../auth/AccountSecurityPanel";
 import { AuditInquiryPanel } from "../audit/AuditInquiryPanel";
 import { AuditTimelinePanel } from "./AuditTimelinePanel";
@@ -134,12 +135,7 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
   }, [operator.accessToken, sessionMethodFilter, sessionStatusFilter]);
 
   function handleApiError(err: unknown, fallback: string) {
-    if (err instanceof ApiError && err.status === 401) {
-      onSessionExpired();
-      return;
-    }
-
-    setError(err instanceof Error ? err.message : fallback);
+    handleApiFailure(err, fallback, onSessionExpired, setError);
   }
 
   function mergeSession(nextSession: VerificationSession) {

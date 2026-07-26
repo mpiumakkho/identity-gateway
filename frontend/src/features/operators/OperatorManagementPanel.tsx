@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { ApiError, getJson, postJson, putJson } from "../../api/client";
+import { getJson, postJson, putJson } from "../../api/client";
+import { handleApiFailure } from "../../api/errors";
 import type { OperatorRole } from "../auth/types";
 import type { CreateOperatorPayload, OperatorUser } from "./types";
 
@@ -57,12 +58,7 @@ export function OperatorManagementPanel({ accessToken, currentOperatorId, onErro
   }, [accessToken]);
 
   function handleApiError(err: unknown, fallback: string) {
-    if (err instanceof ApiError && err.status === 401) {
-      onSessionExpired();
-      return;
-    }
-
-    onError(err instanceof Error ? err.message : fallback);
+    handleApiFailure(err, fallback, onSessionExpired, onError);
   }
 
   async function refreshOperators() {

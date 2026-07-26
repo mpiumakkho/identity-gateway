@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ApiError, getJson, putJson } from "../../api/client";
+import { getJson, putJson } from "../../api/client";
+import { handleApiFailure } from "../../api/errors";
 import type { VerificationMethodOption } from "./types";
 
 type MethodCatalogPanelProps = {
@@ -47,12 +48,7 @@ export function MethodCatalogPanel({ accessToken, onCatalogChanged, onError, onS
   }, [accessToken]);
 
   function handleApiError(err: unknown, fallback: string) {
-    if (err instanceof ApiError && err.status === 401) {
-      onSessionExpired();
-      return;
-    }
-
-    onError(err instanceof Error ? err.message : fallback);
+    handleApiFailure(err, fallback, onSessionExpired, onError);
   }
 
   async function updateMethod(method: VerificationMethodOption, enabled: boolean) {

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { ApiError, getJson, postJson } from "../../api/client";
+import { getJson, postJson } from "../../api/client";
+import { isAuthenticationRequired } from "../../api/errors";
 import { fieldInputClassName, fieldLabelClassName } from "./formStyles";
 import type { DopaValidationHistory, DopaValidationPayload, DopaValidationResult, VerificationSession } from "./types";
 
@@ -47,7 +48,7 @@ export function DopaPanel({ accessToken, session, onError, onSaved, onSessionExp
           return;
         }
 
-        if (err instanceof ApiError && err.status === 401) {
+        if (isAuthenticationRequired(err)) {
           onSessionExpired();
           return;
         }
@@ -116,7 +117,7 @@ export function DopaPanel({ accessToken, session, onError, onSaved, onSessionExp
         await refreshHistory(session.transactionId);
       }
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
+      if (isAuthenticationRequired(err)) {
         onSessionExpired();
         return;
       }

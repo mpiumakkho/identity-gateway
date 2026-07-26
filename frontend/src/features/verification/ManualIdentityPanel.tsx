@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { ApiError, putJson } from "../../api/client";
+import { putJson } from "../../api/client";
+import { isAuthenticationRequired } from "../../api/errors";
 import { fieldInputClassName, fieldLabelClassName } from "./formStyles";
 import { nationalIdValidationMessage } from "./nationalId";
 import type { ManualIdentityPayload, ManualIdentityResult, VerificationSession } from "./types";
@@ -73,7 +74,7 @@ export function ManualIdentityPanel({ accessToken, session, onError, onSaved, on
         onSaved({ ...session, status: response.data.sessionStatus });
       }
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
+      if (isAuthenticationRequired(err)) {
         onSessionExpired();
         return;
       }

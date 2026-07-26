@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { ApiError, postJson } from "../../api/client";
+import { postJson } from "../../api/client";
+import { isAuthenticationRequired } from "../../api/errors";
 import { fieldLabelClassName, fieldTextAreaClassName } from "./formStyles";
 import type { CloseVerificationPayload, VerificationCloseoutResult, VerificationSession } from "./types";
 
@@ -67,7 +68,7 @@ export function SummaryPanel({ accessToken, session, onError, onSaved, onSession
         onSaved({ ...session, status: response.data.sessionStatus });
       }
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) {
+      if (isAuthenticationRequired(err)) {
         onSessionExpired();
         return;
       }

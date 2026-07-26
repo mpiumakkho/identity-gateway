@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { ApiError, getJson } from "../../api/client";
+import { getJson } from "../../api/client";
+import { isAuthenticationRequired } from "../../api/errors";
 
 type OperationsDashboardPanelProps = {
   accessToken: string;
@@ -42,7 +43,7 @@ export function OperationsDashboardPanel({ accessToken, onError, onSessionExpire
           return;
         }
 
-        if (err instanceof ApiError && err.status === 401) {
+        if (isAuthenticationRequired(err)) {
           onSessionExpired();
           return;
         }
