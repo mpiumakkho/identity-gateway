@@ -60,6 +60,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 26. Authentication error envelope flow: unauthorized responses serialized through the shared API envelope. Done with the common response factory and security integration coverage.
 27. Authorization error envelope flow: forbidden responses serialized through the shared API envelope. Done with a REST access-denied handler and security integration coverage.
 28. Frontend authorization handling flow: authentication expiry and access denial are handled separately in the React workspace. Done with shared API error helpers and operator-facing forbidden messages.
+29. Frontend session expiry flow: the React shell clears expired browser sessions on schedule and returns operators to sign-in with a session-expired notice.
 
 ## Data Handling
 

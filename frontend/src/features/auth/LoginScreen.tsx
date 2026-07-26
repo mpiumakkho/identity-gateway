@@ -3,6 +3,7 @@ import { postJson } from "../../api/client";
 import type { AuthSession, LoginCredentials } from "./types";
 
 type LoginScreenProps = {
+  notice?: string;
   onAuthenticated: (session: AuthSession) => void;
 };
 
@@ -11,7 +12,7 @@ const initialCredentials: LoginCredentials = {
   password: ""
 };
 
-export function LoginScreen({ onAuthenticated }: LoginScreenProps) {
+export function LoginScreen({ notice = "", onAuthenticated }: LoginScreenProps) {
   const [credentials, setCredentials] = useState<LoginCredentials>(initialCredentials);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,6 +55,12 @@ export function LoginScreen({ onAuthenticated }: LoginScreenProps) {
             <h1 className="text-3xl font-bold tracking-normal text-white">Sign in</h1>
             <p className="mt-2 text-sm leading-6 text-slate-400">Access verification operations with your operator account.</p>
           </div>
+
+          {notice ? (
+            <div className="mb-5 rounded-lg border border-amber-300/30 bg-amber-400/10 px-4 py-3 text-sm font-medium text-amber-100" role="status">
+              {notice}
+            </div>
+          ) : null}
 
           <form className="grid gap-4" onSubmit={handleSubmit}>
             <label className="grid gap-2" htmlFor="username">
