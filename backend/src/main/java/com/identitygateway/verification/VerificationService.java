@@ -115,18 +115,25 @@ public class VerificationService {
 
     @Transactional(readOnly = true)
     public List<VerificationSessionResponse> recentSessions() {
-        return recentSessions(null, null);
+        return recentSessions(null, null, 20);
     }
 
     @Transactional(readOnly = true)
     public List<VerificationSessionResponse> recentSessions(String method, String status) {
+        return recentSessions(method, status, 20);
+    }
+
+    @Transactional(readOnly = true)
+    public List<VerificationSessionResponse> recentSessions(String method, String status, int limit) {
         VerificationMethod methodFilter = parseMethodFilter(method);
         VerificationStatus statusFilter = parseStatusFilter(status);
+        int cappedLimit = Math.max(1, Math.min(limit, 100));
 
-        return verificationSessionRepository.findRecent(methodFilter, statusFilter, PageRequest.of(0, 20)).stream()
+        return verificationSessionRepository.findRecent(methodFilter, statusFilter, PageRequest.of(0, cappedLimit)).stream()
                 .map(this::toResponse)
                 .toList();
     }
+
     @Transactional(readOnly = true)
     public VerificationSessionDetailResponse session(UUID transactionId) {
         return toDetailResponse(requireSession(transactionId));

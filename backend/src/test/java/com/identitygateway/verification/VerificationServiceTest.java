@@ -31,6 +31,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
@@ -174,11 +175,11 @@ class VerificationServiceTest {
         when(verificationSessionRepository.findRecent(eq(VerificationMethod.DIP_CHIP), eq(VerificationStatus.DOPA_VERIFIED), any(Pageable.class)))
                 .thenReturn(List.of(entity));
 
-        List<VerificationSessionResponse> responses = verificationService.recentSessions("DIP_CHIP", "DOPA_VERIFIED");
+        List<VerificationSessionResponse> responses = verificationService.recentSessions("DIP_CHIP", "DOPA_VERIFIED", 50);
 
         assertThat(responses).hasSize(1);
         assertThat(responses.get(0).status()).isEqualTo("DOPA_VERIFIED");
-        verify(verificationSessionRepository).findRecent(eq(VerificationMethod.DIP_CHIP), eq(VerificationStatus.DOPA_VERIFIED), any(Pageable.class));
+        verify(verificationSessionRepository).findRecent(eq(VerificationMethod.DIP_CHIP), eq(VerificationStatus.DOPA_VERIFIED), argThat(pageable -> pageable.getPageSize() == 50));
     }
 
     @Test
@@ -186,6 +187,24 @@ class VerificationServiceTest {
         assertThatThrownBy(() -> verificationService.recentSessions(null, "DONE"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Unsupported verification status: DONE");
+    }
+
+    @Test
+    void recentSessionsCapsRequestedLimit() {
+        when(verificationSessionRepository.findRecent(isNull(), isNull(), any(Pageable.class))).thenReturn(List.of());
+
+        verificationService.recentSessions(null, null, 500);
+
+        verify(verificationSessionRepository).findRecent(isNull(), isNull(), argThat(pageable -> pageable.getPageSize() == 100));
+    }
+
+    @Test
+    void recentSessionsUsesMinimumLimit() {
+        when(verificationSessionRepository.findRecent(isNull(), isNull(), any(Pageable.class))).thenReturn(List.of());
+
+        verificationService.recentSessions(null, null, 0);
+
+        verify(verificationSessionRepository).findRecent(isNull(), isNull(), argThat(pageable -> pageable.getPageSize() == 1));
     }
 
     @Test

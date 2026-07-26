@@ -29,6 +29,7 @@ import static org.hamcrest.Matchers.blankOrNullString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -137,7 +138,7 @@ class VerificationControllerTest {
     }
     @Test
     void sessionsReturnsRecentTransactions() throws Exception {
-        when(verificationService.recentSessions(null, null)).thenReturn(List.of(sessionResponse()));
+        when(verificationService.recentSessions(null, null, 20)).thenReturn(List.of(sessionResponse()));
 
         mockMvc.perform(get("/api/verification/sessions"))
                 .andExpect(status().isOk())
@@ -148,14 +149,17 @@ class VerificationControllerTest {
 
     @Test
     void sessionsPassesFiltersToService() throws Exception {
-        when(verificationService.recentSessions("DIP_CHIP", "DOPA_VERIFIED")).thenReturn(List.of(sessionResponse()));
+        when(verificationService.recentSessions("DIP_CHIP", "DOPA_VERIFIED", 50)).thenReturn(List.of(sessionResponse()));
 
         mockMvc.perform(get("/api/verification/sessions")
                         .param("method", "DIP_CHIP")
-                        .param("status", "DOPA_VERIFIED"))
+                        .param("status", "DOPA_VERIFIED")
+                        .param("limit", "50"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data", hasSize(1)))
                 .andExpect(jsonPath("$.data[0].method").value("DIP_CHIP"));
+
+        verify(verificationService).recentSessions("DIP_CHIP", "DOPA_VERIFIED", 50);
     }
 
     @Test

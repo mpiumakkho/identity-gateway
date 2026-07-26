@@ -57,9 +57,10 @@ public class VerificationController {
     @GetMapping("/sessions")
     public ApiResponse<List<VerificationSessionResponse>> sessions(
             @RequestParam(required = false) String method,
-            @RequestParam(required = false) String status
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "20") int limit
     ) {
-        return ApiResponse.ok(verificationService.recentSessions(method, status));
+        return ApiResponse.ok(verificationService.recentSessions(method, status, limit));
     }
 
     @GetMapping("/sessions/{transactionId}")

@@ -21,6 +21,7 @@ const defaultMethods: VerificationMethodOption[] = [
 ];
 
 const statusFilters = ["CREATED", "IDENTITY_CAPTURED", "DOPA_VERIFIED", "DOPA_REJECTED", "APPROVED", "REJECTED"];
+const sessionLimitOptions = [20, 50, 100];
 
 const workflowSteps = ["Method", "Identity", "DOPA", "Summary"];
 const transactionIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -35,6 +36,7 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
   const [selectedMethod, setSelectedMethod] = useState<MethodId>("DIP_CHIP");
   const [sessionMethodFilter, setSessionMethodFilter] = useState<"ALL" | MethodId>("ALL");
   const [sessionStatusFilter, setSessionStatusFilter] = useState("ALL");
+  const [sessionLimit, setSessionLimit] = useState(20);
   const [methodCatalog, setMethodCatalog] = useState<VerificationMethodOption[]>(defaultMethods);
   const [sessions, setSessions] = useState<VerificationSession[]>([]);
   const [activeSession, setActiveSession] = useState<VerificationSession | null>(null);
@@ -100,7 +102,9 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
           params.set("status", sessionStatusFilter);
         }
 
-        const path = params.size > 0 ? `/api/verification/sessions?${params.toString()}` : "/api/verification/sessions";
+        params.set("limit", String(sessionLimit));
+
+        const path = `/api/verification/sessions?${params.toString()}`;
         const response = await getJson<VerificationSession[]>(path, {
           accessToken: operator.accessToken
         });
@@ -132,7 +136,7 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
     return () => {
       cancelled = true;
     };
-  }, [operator.accessToken, sessionMethodFilter, sessionStatusFilter]);
+  }, [operator.accessToken, sessionMethodFilter, sessionStatusFilter, sessionLimit]);
 
   function handleApiError(err: unknown, fallback: string) {
     handleApiFailure(err, fallback, onSessionExpired, setError);
@@ -581,7 +585,7 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
                     {isLookingUpTransaction ? "Loading..." : "Lookup"}
                   </button>
                 </form>
-                <div className="grid gap-3 sm:grid-cols-[180px_220px_auto] sm:items-end">
+                <div className="grid gap-3 sm:grid-cols-[180px_220px_120px_auto] sm:items-end">
                   <label className="grid gap-1 text-xs font-bold uppercase text-slate-500">
                     Method
                     <select
@@ -608,6 +612,20 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
                       {statusFilters.map((status) => (
                         <option key={status} value={status}>
                           {status}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="grid gap-1 text-xs font-bold uppercase text-slate-500">
+                    Limit
+                    <select
+                      className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold normal-case text-slate-700 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                      value={sessionLimit}
+                      onChange={(event) => setSessionLimit(Number(event.target.value))}
+                    >
+                      {sessionLimitOptions.map((limit) => (
+                        <option key={limit} value={limit}>
+                          {limit}
                         </option>
                       ))}
                     </select>
