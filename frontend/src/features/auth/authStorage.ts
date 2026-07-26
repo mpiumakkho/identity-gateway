@@ -1,3 +1,4 @@
+import { normalizePermissions } from "./permissions";
 import type { AuthSession } from "./types";
 
 const storageKey = "identity-gateway.auth-session";
@@ -34,7 +35,7 @@ export function loadAuthSession(): AuthSession | null {
       return null;
     }
 
-    return parsed;
+    return normalizePermissions(parsed);
   } catch {
     clearAuthSession();
     return null;

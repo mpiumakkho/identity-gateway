@@ -152,6 +152,7 @@ class OperatorManagementServiceTest {
                 "admin",
                 "Admin User",
                 OperatorRole.ADMIN,
+                OperatorRole.ADMIN.permissions(),
                 Instant.parse("2026-07-25T08:00:00Z")
         );
     }

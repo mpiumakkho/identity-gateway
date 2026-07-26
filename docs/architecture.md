@@ -63,7 +63,9 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 29. Frontend session expiry flow: the React shell clears expired browser sessions on schedule and returns operators to sign-in with a session-expired notice.
 30. Transaction inquiry limit flow: recent verification sessions support an operator-selected result limit capped by the backend.
 31. Build automation flow: Maven Wrapper and GitHub Actions run backend tests and frontend builds without requiring a local Maven installation.
-32. DOPA partner integration flow: DOPA validation can run through a configurable partner HTTP adapter with environment-provided credentials, timeout/retry controls, and technical-failure mapping while local mode remains available for development and tests.`n33. Dip Chip reader bridge flow: the frontend can call a localhost native bridge for real card-reader SDK access, populate the reviewed payload form, and submit through the existing backend persistence/audit boundary.
+32. DOPA partner integration flow: DOPA validation can run through a configurable partner HTTP adapter with environment-provided credentials, timeout/retry controls, and technical-failure mapping while local mode remains available for development and tests.
+33. Dip Chip reader bridge flow: the frontend can call a localhost native bridge for real card-reader SDK access, populate the reviewed payload form, and submit through the existing backend persistence/audit boundary.
+34. Permission granularity flow: operator roles now map to explicit permissions used by backend authorization rules and frontend admin navigation.
 
 ## Data Handling
 

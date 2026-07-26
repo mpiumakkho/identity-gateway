@@ -1,6 +1,7 @@
 package com.identitygateway.config;
 
 import com.identitygateway.auth.BearerTokenAuthenticationFilter;
+import com.identitygateway.auth.OperatorPermission;
 import com.identitygateway.auth.OperatorUserRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -55,9 +56,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/system/health", "/actuator/health", "/actuator/info").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/verification/methods/catalog").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.PUT, "/api/verification/methods/*/enabled").hasRole("ADMIN")
-                        .requestMatchers("/api/operators/**", "/api/audit-events/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/verification/methods/catalog").hasAuthority(OperatorPermission.METHOD_CATALOG_MANAGE.name())
+                        .requestMatchers(HttpMethod.PUT, "/api/verification/methods/*/enabled").hasAuthority(OperatorPermission.METHOD_CATALOG_MANAGE.name())
+                        .requestMatchers("/api/operators/**").hasAuthority(OperatorPermission.OPERATOR_MANAGE.name())
+                        .requestMatchers("/api/audit-events/**").hasAuthority(OperatorPermission.AUDIT_READ.name())
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(bearerTokenAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

@@ -6,6 +6,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 public record AuthenticatedOperator(
@@ -13,6 +14,7 @@ public record AuthenticatedOperator(
         String username,
         String displayName,
         OperatorRole role,
+        Set<OperatorPermission> permissions,
         Instant sessionExpiresAt
 ) {
 
@@ -22,11 +24,15 @@ public record AuthenticatedOperator(
                 user.getUsername(),
                 user.getDisplayName(),
                 user.getRole(),
+                user.getRole().permissions(),
                 sessionExpiresAt
         );
     }
 
     public Collection<? extends GrantedAuthority> authorities() {
-        return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        List<GrantedAuthority> authorities = new java.util.ArrayList<>();
+        authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name()));
+        permissions.forEach(permission -> authorities.add(new SimpleGrantedAuthority(permission.name())));
+        return List.copyOf(authorities);
     }
 }

@@ -15,7 +15,8 @@ All application responses use this envelope:
 }
 ```
 
-Validation errors include field-level details in `errors`, while non-validation errors keep `errors` as `null`. Authentication failures use code `AUTHENTICATION_REQUIRED`; authorization failures use code `ACCESS_DENIED`.
+Validation errors include field-level details in `errors`, while non-validation errors keep `errors` as
+ull`. Authentication failures use code `AUTHENTICATION_REQUIRED`; authorization failures use code `ACCESS_DENIED`.
 
 Protected endpoints require an opaque bearer token:
 
@@ -51,6 +52,7 @@ Response data:
   "username": "operator",
   "displayName": "Operations User",
   "role": "OPERATIONS",
+  "permissions": ["VERIFICATION_READ", "VERIFICATION_WRITE"],
   "authenticatedAt": "2026-07-25T00:00:00Z",
   "accessToken": "opaque-token",
   "expiresAt": "2026-07-25T08:00:00Z"
@@ -71,6 +73,7 @@ Response data:
   "username": "operator",
   "displayName": "Operations User",
   "role": "OPERATIONS",
+  "permissions": ["VERIFICATION_READ", "VERIFICATION_WRITE"],
   "sessionExpiresAt": "2026-07-25T08:00:00Z"
 }
 ```
@@ -145,7 +148,7 @@ Missing, expired, revoked, or invalid tokens return `401` with code `AUTHENTICAT
 
 ## Operator Management
 
-All operator management endpoints require an authenticated `ADMIN` operator. Passwords are accepted only in request bodies and are never returned. Password changes and disabled accounts revoke active sessions for the affected operator.
+All operator management endpoints require `OPERATOR_MANAGE` permission. Existing `ADMIN` operators receive this permission by default. Passwords are accepted only in request bodies and are never returned. Password changes and disabled accounts revoke active sessions for the affected operator.
 
 ### `GET /operators`
 
@@ -204,7 +207,7 @@ Disables an operator account and revokes active sessions. Admin operators cannot
 
 ### `GET /audit-events`
 
-Returns recent platform audit events for authenticated `ADMIN` operators. Optional query parameters: `eventType`, `operatorId`, and `limit` from `1` to `100`.
+Returns recent platform audit events for operators with `AUDIT_READ` permission. Optional query parameters: `eventType`, `operatorId`, and `limit` from `1` to `100`.
 
 Response data:
 

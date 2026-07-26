@@ -52,6 +52,7 @@ class AuthControllerTest {
                 "operator",
                 "Operations User",
                 OperatorRole.OPERATIONS,
+                OperatorRole.OPERATIONS.permissions(),
                 Instant.parse("2026-07-25T00:00:00Z"),
                 "issued-token",
                 Instant.parse("2026-07-25T08:00:00Z")
@@ -138,6 +139,7 @@ class AuthControllerTest {
                 "operator",
                 "Operations User",
                 OperatorRole.OPERATIONS,
+                OperatorRole.OPERATIONS.permissions(),
                 Instant.parse("2026-07-25T08:00:00Z")
         );
     }

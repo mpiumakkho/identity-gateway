@@ -71,7 +71,8 @@ class SecurityIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.username").value("operator-operations"))
                 .andExpect(jsonPath("$.data.displayName").value("Operations User"))
-                .andExpect(jsonPath("$.data.role").value("OPERATIONS"));
+                .andExpect(jsonPath("$.data.role").value("OPERATIONS"))
+                .andExpect(jsonPath("$.data.permissions[0]").exists());
 
         mockMvc.perform(get("/api/verification/methods")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))

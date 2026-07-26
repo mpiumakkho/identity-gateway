@@ -164,6 +164,7 @@ class DopaValidationServiceTest {
                 "operator",
                 "Operations User",
                 OperatorRole.OPERATIONS,
+                OperatorRole.OPERATIONS.permissions(),
                 Instant.parse("2026-07-25T08:00:00Z")
         );
     }

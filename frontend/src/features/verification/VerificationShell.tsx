@@ -5,6 +5,7 @@ import { AccountSecurityPanel } from "../auth/AccountSecurityPanel";
 import { AuditInquiryPanel } from "../audit/AuditInquiryPanel";
 import { AuditTimelinePanel } from "./AuditTimelinePanel";
 import { OperatorManagementPanel } from "../operators/OperatorManagementPanel";
+import { hasPermission } from "../auth/permissions";
 import type { AuthSession } from "../auth/types";
 import { DipChipPanel } from "./DipChipPanel";
 import { DopaPanel } from "./DopaPanel";
@@ -48,7 +49,14 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
   const [isLookingUpTransaction, setIsLookingUpTransaction] = useState(false);
   const activeWorkflowIndex = workflowIndex(activeSession?.status);
   const operatorInitials = (operator.displayName || operator.username).slice(0, 2).toUpperCase();
-  const navigationItems = operator.role === "ADMIN" ? ["Verification", "Transactions", "Methods", "Account", "Audit", "Operators"] : ["Verification", "Transactions", "Account"];
+  const navigationItems = [
+    "Verification",
+    "Transactions",
+    hasPermission(operator, "METHOD_CATALOG_MANAGE") ? "Methods" : null,
+    "Account",
+    hasPermission(operator, "AUDIT_READ") ? "Audit" : null,
+    hasPermission(operator, "OPERATOR_MANAGE") ? "Operators" : null
+  ].filter((item): item is string => Boolean(item));
   const methods = methodCatalog.filter((method) => method.enabled);
   const methodLabel = (method: MethodId) => methodCatalog.find((item) => item.id === method)?.label ?? method;
 
@@ -675,7 +683,7 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
             )}
           </section>
 
-          {operator.role === "ADMIN" ? (
+          {hasPermission(operator, "METHOD_CATALOG_MANAGE") ? (
             <MethodCatalogPanel accessToken={operator.accessToken} onCatalogChanged={applyMethodCatalog} onError={setError} onSessionExpired={onSessionExpired} />
           ) : null}
 
@@ -685,11 +693,11 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
             onSessionExpired={onSessionExpired}
           />
 
-          {operator.role === "ADMIN" ? (
+          {hasPermission(operator, "AUDIT_READ") ? (
             <AuditInquiryPanel accessToken={operator.accessToken} onError={setError} onSessionExpired={onSessionExpired} />
           ) : null}
 
-          {operator.role === "ADMIN" ? (
+          {hasPermission(operator, "OPERATOR_MANAGE") ? (
             <OperatorManagementPanel
               accessToken={operator.accessToken}
               currentOperatorId={operator.operatorId}

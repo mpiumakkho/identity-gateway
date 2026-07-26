@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { postJson } from "./api/client";
 import { LoginScreen } from "./features/auth/LoginScreen";
 import { clearAuthSession, loadAuthSession, saveAuthSession } from "./features/auth/authStorage";
+import { normalizePermissions } from "./features/auth/permissions";
 import type { AuthSession } from "./features/auth/types";
 import { VerificationShell } from "./features/verification/VerificationShell";
 import { usePreline } from "./lib/usePreline";
@@ -33,9 +34,10 @@ export default function App() {
   }, [authSession]);
 
   function handleAuthenticated(session: AuthSession) {
-    saveAuthSession(session);
+    const normalizedSession = normalizePermissions(session);
+    saveAuthSession(normalizedSession);
     setAuthNotice("");
-    setAuthSession(session);
+    setAuthSession(normalizedSession);
   }
 
   function clearSession(notice = "") {

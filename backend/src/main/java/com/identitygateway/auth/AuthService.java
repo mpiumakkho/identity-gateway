@@ -69,6 +69,7 @@ public class AuthService {
                 user.getUsername(),
                 user.getDisplayName(),
                 user.getRole(),
+                user.getRole().permissions(),
                 Instant.now(),
                 session.accessToken(),
                 session.expiresAt()

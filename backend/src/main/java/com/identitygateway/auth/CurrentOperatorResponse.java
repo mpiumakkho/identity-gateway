@@ -1,6 +1,7 @@
 package com.identitygateway.auth;
 
 import java.time.Instant;
+import java.util.Set;
 import java.util.UUID;
 
 public record CurrentOperatorResponse(
@@ -8,6 +9,7 @@ public record CurrentOperatorResponse(
         String username,
         String displayName,
         OperatorRole role,
+        Set<OperatorPermission> permissions,
         Instant sessionExpiresAt
 ) {
     public static CurrentOperatorResponse from(AuthenticatedOperator operator) {
@@ -16,6 +18,7 @@ public record CurrentOperatorResponse(
                 operator.username(),
                 operator.displayName(),
                 operator.role(),
+                operator.permissions(),
                 operator.sessionExpiresAt()
         );
     }
