@@ -13,7 +13,7 @@ identity-gateway/
 
 ## Stack
 
-- Backend: Spring Boot 4.1, Java 17, Maven, Spring Security, BCrypt, Spring Data JPA, Flyway
+- Backend: Spring Boot 4.1, Java 17, Maven Wrapper, Spring Security, BCrypt, Spring Data JPA, Flyway
 - Database: PostgreSQL for runtime, H2 only for automated tests
 - Frontend: React 19, Vite, Tailwind CSS, Preline UI
 
@@ -25,11 +25,16 @@ Start PostgreSQL:
 docker compose up -d postgres
 ```
 
-Backend:
+Backend on Windows:
+
+```powershell
+.\mvnw.cmd -f backend\pom.xml spring-boot:run
+```
+
+Backend on macOS/Linux:
 
 ```bash
-cd backend
-mvn spring-boot:run
+./mvnw -f backend/pom.xml spring-boot:run
 ```
 
 Frontend:

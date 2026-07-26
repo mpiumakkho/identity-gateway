@@ -1,6 +1,7 @@
 package com.identitygateway.auth;
 
 import com.identitygateway.common.api.ApiResponse;
+import com.identitygateway.common.error.AuthenticationFailedException;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;

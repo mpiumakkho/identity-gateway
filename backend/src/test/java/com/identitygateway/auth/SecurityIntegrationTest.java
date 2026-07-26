@@ -69,7 +69,7 @@ class SecurityIntegrationTest {
         mockMvc.perform(get("/api/auth/me")
                         .header(HttpHeaders.AUTHORIZATION, "Bearer " + accessToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.data.username").value("operator"))
+                .andExpect(jsonPath("$.data.username").value("operator-operations"))
                 .andExpect(jsonPath("$.data.displayName").value("Operations User"))
                 .andExpect(jsonPath("$.data.role").value("OPERATIONS"));
 
@@ -131,7 +131,7 @@ class SecurityIntegrationTest {
         operatorSessionRepository.save(OperatorSession.create(
                 operator,
                 tokenHashingService.hash(accessToken),
-                Instant.parse("2026-07-25T23:59:59Z")
+                Instant.parse("2026-07-27T23:59:59Z")
         ));
     }
 }

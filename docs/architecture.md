@@ -62,6 +62,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 28. Frontend authorization handling flow: authentication expiry and access denial are handled separately in the React workspace. Done with shared API error helpers and operator-facing forbidden messages.
 29. Frontend session expiry flow: the React shell clears expired browser sessions on schedule and returns operators to sign-in with a session-expired notice.
 30. Transaction inquiry limit flow: recent verification sessions support an operator-selected result limit capped by the backend.
+31. Build automation flow: Maven Wrapper and GitHub Actions run backend tests and frontend builds without requiring a local Maven installation.
 
 ## Data Handling
 

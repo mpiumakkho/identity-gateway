@@ -22,13 +22,13 @@ set BOOTSTRAP_OPERATOR_DISPLAY_NAME=Operations User
 Then run the API:
 
 ```bash
-mvn spring-boot:run
+..\mvnw.cmd -f pom.xml spring-boot:run
 ```
 
 ## Test
 
 ```bash
-mvn test
+..\mvnw.cmd -f pom.xml test
 ```
 
 Tests use the `test` profile with an in-memory H2 database. Runtime configuration targets PostgreSQL.

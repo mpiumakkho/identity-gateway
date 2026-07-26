@@ -1,5 +1,7 @@
 package com.identitygateway.audit;
 
+import com.identitygateway.auth.BearerTokenResolver;
+import com.identitygateway.auth.OperatorSessionService;
 import com.identitygateway.common.error.GlobalExceptionHandler;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +30,12 @@ class AuditControllerTest {
 
     @MockitoBean
     private AuditService auditService;
+
+    @MockitoBean
+    private BearerTokenResolver bearerTokenResolver;
+
+    @MockitoBean
+    private OperatorSessionService operatorSessionService;
 
     @Test
     void auditEventsReturnsRecentEvents() throws Exception {

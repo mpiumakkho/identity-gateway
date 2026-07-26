@@ -82,6 +82,10 @@ public class VerificationMethodEntity {
         return enabled;
     }
 
+    public void updateEnabled(boolean enabled) {
+        this.enabled = enabled;
+    }
+
     public int getSortOrder() {
         return sortOrder;
     }

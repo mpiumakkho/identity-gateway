@@ -21,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Pageable;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -239,7 +240,9 @@ class VerificationServiceTest {
                 new DopaGatewayResult(DopaValidationResultStatus.MATCHED, "DOPA-0000", "Citizen identity matched."),
                 "CONSENT-001"
         );
-        attempt.prePersist();
+        ReflectionTestUtils.setField(attempt, "id", UUID.fromString("23402186-28eb-4bd9-a585-0fa268147f1a"));
+        ReflectionTestUtils.setField(attempt, "createdAt", Instant.parse("2026-07-25T00:00:00Z"));
+        ReflectionTestUtils.setField(attempt, "validatedAt", Instant.parse("2026-07-25T00:00:00Z"));
         when(verificationSessionRepository.findDetailById(session.getId())).thenReturn(Optional.of(session));
         when(dopaValidationAttemptRepository.findTop10BySessionIdOrderByValidatedAtDesc(session.getId())).thenReturn(List.of(attempt));
 

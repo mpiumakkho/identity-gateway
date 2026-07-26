@@ -78,7 +78,7 @@ class AuthControllerTest {
         UUID sessionId = UUID.fromString("4ccf1d23-1be5-4356-af6f-cb7adf0b9426");
 
         when(bearerTokenResolver.resolve("Bearer current-token")).thenReturn(Optional.of("current-token"));
-        when(authService.activeSessions(eq(operator), eq("current-token"))).thenReturn(List.of(new OperatorSessionResponse(
+        when(authService.activeSessions(any(), eq("current-token"))).thenReturn(List.of(new OperatorSessionResponse(
                 sessionId,
                 true,
                 Instant.parse("2026-07-25T00:00:00Z"),
@@ -100,7 +100,7 @@ class AuthControllerTest {
         UUID sessionId = UUID.fromString("4ccf1d23-1be5-4356-af6f-cb7adf0b9426");
 
         when(bearerTokenResolver.resolve("Bearer current-token")).thenReturn(Optional.of("current-token"));
-        when(authService.revokeSession(eq(operator), eq(sessionId), eq("current-token"))).thenReturn(new SessionRevocationResponse(true));
+        when(authService.revokeSession(any(), eq(sessionId), eq("current-token"))).thenReturn(new SessionRevocationResponse(true));
 
         mockMvc.perform(delete("/api/auth/sessions/{sessionId}", sessionId)
                         .with(authentication(authenticatedRequest))
@@ -115,7 +115,7 @@ class AuthControllerTest {
         UsernamePasswordAuthenticationToken authenticatedRequest = authenticatedRequest(operator);
 
         when(bearerTokenResolver.resolve("Bearer current-token")).thenReturn(Optional.of("current-token"));
-        when(authService.changeOwnPassword(eq(operator), eq("current-token"), any(ChangeOwnPasswordRequest.class)))
+        when(authService.changeOwnPassword(any(), eq("current-token"), any(ChangeOwnPasswordRequest.class)))
                 .thenReturn(new PasswordChangeResponse(true));
 
         mockMvc.perform(put("/api/auth/password")

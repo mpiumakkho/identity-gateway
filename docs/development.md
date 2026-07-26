@@ -3,10 +3,13 @@
 ## Prerequisites
 
 - Java 17
-- Maven 3.9+
 - Node.js 22+
 - npm 10+
 - Docker Desktop or another local PostgreSQL runtime
+
+## Maven Wrapper
+
+The repository includes Maven Wrapper files, so a local Maven installation is not required. On macOS/Linux, replace `.\mvnw.cmd` with `./mvnw`.
 
 ## First Run
 
@@ -16,18 +19,23 @@ Start PostgreSQL:
 docker compose up -d postgres
 ```
 
-Backend:
+Backend on Windows:
 
-```bash
-cd backend
-mvn spring-boot:run
+```powershell
+.\mvnw.cmd -f backend\pom.xml spring-boot:run
 ```
 
-Backend tests:
+Backend tests on Windows:
+
+```powershell
+.\mvnw.cmd -f backend\pom.xml test
+```
+
+Backend on macOS/Linux:
 
 ```bash
-cd backend
-mvn test
+./mvnw -f backend/pom.xml spring-boot:run
+./mvnw -f backend/pom.xml test
 ```
 
 Frontend:
