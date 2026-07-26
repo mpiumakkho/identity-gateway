@@ -116,6 +116,28 @@ class DopaValidationServiceTest {
     }
 
     @Test
+    void validateRecordsGatewayErrorWithoutRejectingSession() {
+        VerificationSessionEntity session = sessionEntity(VerificationMethod.MANUAL_ENTRY);
+        session.markIdentityCaptured();
+        when(verificationSessionRepository.findDetailById(session.getId())).thenReturn(Optional.of(session));
+        when(manualIdentityEntryRepository.findBySessionId(session.getId())).thenReturn(Optional.of(manualIdentity(session)));
+        when(dopaGatewayClient.validate(any(DopaGatewayRequest.class)))
+                .thenThrow(new DopaGatewayException("Partner timeout."));
+        when(dopaValidationAttemptRepository.save(any(DopaValidationAttempt.class))).thenAnswer(invocation -> {
+            DopaValidationAttempt attempt = invocation.getArgument(0);
+            attempt.prePersist();
+            return attempt;
+        });
+
+        DopaValidationResponse response = dopaValidationService.validate(authenticatedOperator(), session.getId(), new DopaValidationRequest("CONSENT-003"));
+
+        assertThat(response.sessionStatus()).isEqualTo("IDENTITY_CAPTURED");
+        assertThat(response.validationStatus()).isEqualTo("ERROR");
+        assertThat(response.responseCode()).isEqualTo("DOPA-PARTNER-ERROR");
+        assertThat(response.responseMessage()).isEqualTo("DOPA partner validation unavailable.");
+    }
+
+    @Test
     void validateRejectsSessionWithoutCapturedIdentity() {
         VerificationSessionEntity session = sessionEntity(VerificationMethod.MANUAL_ENTRY);
         when(verificationSessionRepository.findDetailById(session.getId())).thenReturn(Optional.of(session));

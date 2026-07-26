@@ -63,6 +63,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 29. Frontend session expiry flow: the React shell clears expired browser sessions on schedule and returns operators to sign-in with a session-expired notice.
 30. Transaction inquiry limit flow: recent verification sessions support an operator-selected result limit capped by the backend.
 31. Build automation flow: Maven Wrapper and GitHub Actions run backend tests and frontend builds without requiring a local Maven installation.
+32. DOPA partner integration flow: DOPA validation can run through a configurable partner HTTP adapter with environment-provided credentials, timeout/retry controls, and technical-failure mapping while local mode remains available for development and tests.
 
 ## Data Handling
 
@@ -70,4 +71,4 @@ Do not store verification transaction state in static in-memory fields. Persist 
 
 ## Secrets
 
-No salts, passwords, signing keys, API tokens, or partner credentials should be committed to the repository.
+No salts, passwords, signing keys, API tokens, or partner credentials should be committed to the repository. Partner credentials must be supplied through runtime environment variables.

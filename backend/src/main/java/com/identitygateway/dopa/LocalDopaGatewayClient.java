@@ -1,8 +1,5 @@
 package com.identitygateway.dopa;
 
-import org.springframework.stereotype.Component;
-
-@Component
 public class LocalDopaGatewayClient implements DopaGatewayClient {
 
     @Override

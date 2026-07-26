@@ -2,5 +2,6 @@ package com.identitygateway.dopa;
 
 public enum DopaValidationResultStatus {
     MATCHED,
-    NOT_MATCHED
+    NOT_MATCHED,
+    ERROR
 }

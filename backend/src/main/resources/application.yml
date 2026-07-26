@@ -33,6 +33,15 @@ management:
       enabled: true
 
 app:
+  dopa:
+    mode: ${DOPA_MODE:local}
+    partner:
+      base-url: ${DOPA_BASE_URL:}
+      validation-path: ${DOPA_VALIDATION_PATH:/validate}
+      api-key: ${DOPA_API_KEY:}
+      connect-timeout: ${DOPA_CONNECT_TIMEOUT:PT3S}
+      read-timeout: ${DOPA_READ_TIMEOUT:PT10S}
+      retry-attempts: ${DOPA_RETRY_ATTEMPTS:1}
   auth:
     session-ttl: PT8H
   bootstrap:

@@ -453,7 +453,7 @@ Response data:
 Unknown transaction IDs return `404` with code `NOT_FOUND`.
 ### `POST /verification/sessions/{transactionId}/dopa-validation`
 
-Validates the captured identity details for a transaction session. Requires authentication. The session must already be `IDENTITY_CAPTURED`, `DOPA_VERIFIED`, or `DOPA_REJECTED`. A matched result moves the session to `DOPA_VERIFIED`; an unmatched result moves it to `DOPA_REJECTED`. The response masks the national ID and never returns the laser code.
+Validates the captured identity details for a transaction session. Requires authentication. The session must already be `IDENTITY_CAPTURED`, `DOPA_VERIFIED`, or `DOPA_REJECTED`. A matched result moves the session to `DOPA_VERIFIED`; an unmatched result moves it to `DOPA_REJECTED`. A partner timeout or technical failure is recorded as validation status `ERROR` and leaves the session in its current retryable status. The response masks the national ID and never returns the laser code.
 
 Request:
 
@@ -479,7 +479,7 @@ Response data:
 }
 ```
 
-Invalid payloads return `400` with code `VALIDATION_ERROR`. Sessions without captured identity return `400` with code `BAD_REQUEST`.
+Invalid payloads return `400` with code `VALIDATION_ERROR`. Sessions without captured identity return `400` with code `BAD_REQUEST`. Technical partner failures return a successful envelope with `validationStatus` set to `ERROR`, `responseCode` set to `DOPA-PARTNER-ERROR`, and no sensitive partner details.
 
 ### `POST /verification/sessions/{transactionId}/closeout`
 

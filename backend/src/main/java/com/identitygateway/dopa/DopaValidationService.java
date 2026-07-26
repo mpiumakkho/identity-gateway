@@ -23,6 +23,8 @@ import static com.identitygateway.identity.IdentityDataProtector.maskNationalId;
 public class DopaValidationService {
 
     private static final String SESSION_NOT_FOUND_MESSAGE = "Verification session not found.";
+    private static final String DOPA_PARTNER_ERROR_CODE = "DOPA-PARTNER-ERROR";
+    private static final String DOPA_PARTNER_ERROR_MESSAGE = "DOPA partner validation unavailable.";
 
     private final VerificationSessionRepository verificationSessionRepository;
     private final ManualIdentityEntryRepository manualIdentityEntryRepository;
@@ -61,16 +63,12 @@ public class DopaValidationService {
         }
 
         DopaIdentitySnapshot identity = resolveIdentity(session);
-        DopaGatewayResult result = dopaGatewayClient.validate(new DopaGatewayRequest(identity, request.consentReference().trim()));
+        DopaGatewayResult result = validateWithGateway(identity, request);
         DopaValidationAttempt savedAttempt = dopaValidationAttemptRepository.save(
                 DopaValidationAttempt.create(session, identity.source(), result, request.consentReference())
         );
 
-        if (result.matched()) {
-            session.markDopaVerified();
-        } else {
-            session.markDopaRejected();
-        }
+        applySessionStatus(session, result);
 
         auditService.recordTransactionEvent(
                 AuditEventType.DOPA_VALIDATION_COMPLETED,
@@ -81,6 +79,25 @@ public class DopaValidationService {
         );
 
         return toResponse(session, identity, savedAttempt);
+    }
+
+    private DopaGatewayResult validateWithGateway(DopaIdentitySnapshot identity, DopaValidationRequest request) {
+        try {
+            return dopaGatewayClient.validate(new DopaGatewayRequest(identity, request.consentReference().trim()));
+        } catch (DopaGatewayException ex) {
+            return DopaGatewayResult.error(DOPA_PARTNER_ERROR_CODE, DOPA_PARTNER_ERROR_MESSAGE);
+        }
+    }
+
+    private void applySessionStatus(VerificationSessionEntity session, DopaGatewayResult result) {
+        if (result.matched()) {
+            session.markDopaVerified();
+            return;
+        }
+
+        if (result.notMatched()) {
+            session.markDopaRejected();
+        }
     }
 
     private DopaIdentitySnapshot resolveIdentity(VerificationSessionEntity session) {

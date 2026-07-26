@@ -53,7 +53,19 @@ BOOTSTRAP_OPERATOR_DISPLAY_NAME=Operations User
 BOOTSTRAP_OPERATOR_ROLE=OPERATIONS
 ```
 
-## Initial Endpoints
+DOPA integration settings:
+
+```text
+DOPA_MODE=local
+DOPA_BASE_URL=
+DOPA_VALIDATION_PATH=/validate
+DOPA_API_KEY=
+DOPA_CONNECT_TIMEOUT=PT3S
+DOPA_READ_TIMEOUT=PT10S
+DOPA_RETRY_ATTEMPTS=1
+```
+
+Use `DOPA_MODE=partner` only when the partner endpoint and credentials are supplied through the runtime environment.`r`n`r`n## Initial Endpoints
 
 - `GET /api/system/health` with service and database readiness
 - `POST /api/auth/login`
