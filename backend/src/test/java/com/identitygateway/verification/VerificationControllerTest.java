@@ -7,6 +7,7 @@ import com.identitygateway.auth.OperatorSessionService;
 import com.identitygateway.common.error.GlobalExceptionHandler;
 import com.identitygateway.audit.AuditEventResponse;
 import com.identitygateway.dopa.DopaValidationHistoryResponse;
+import com.identitygateway.report.CsvReportService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,6 +35,8 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -53,6 +56,9 @@ class VerificationControllerTest {
 
     @MockitoBean
     private VerificationService verificationService;
+
+    @MockitoBean
+    private CsvReportService csvReportService;
 
     @AfterEach
     void clearSecurityContext() {
@@ -162,6 +168,21 @@ class VerificationControllerTest {
         verify(verificationService).recentSessions("DIP_CHIP", "DOPA_VERIFIED", 50);
     }
 
+
+    @Test
+    void sessionsReportReturnsCsvDownload() throws Exception {
+        List<VerificationSessionResponse> sessions = List.of(sessionResponse());
+        when(verificationService.recentSessions("DIP_CHIP", "CREATED", 100)).thenReturn(sessions);
+        when(csvReportService.verificationSessions(sessions)).thenReturn("transactionId,method\n1,DIP_CHIP\n");
+
+        mockMvc.perform(get("/api/verification/reports/sessions.csv")
+                        .param("method", "DIP_CHIP")
+                        .param("status", "CREATED"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", "attachment; filename=\"verification-sessions.csv\""))
+                .andExpect(content().contentType("text/csv"))
+                .andExpect(content().string("transactionId,method\n1,DIP_CHIP\n"));
+    }
     @Test
     void sessionReturnsTransactionDetail() throws Exception {
         UUID transactionId = UUID.fromString("b9d38258-8ec4-4645-a6ca-e901e1c1766a");

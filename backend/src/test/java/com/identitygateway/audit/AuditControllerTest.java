@@ -3,6 +3,7 @@ package com.identitygateway.audit;
 import com.identitygateway.auth.BearerTokenResolver;
 import com.identitygateway.auth.OperatorSessionService;
 import com.identitygateway.common.error.GlobalExceptionHandler;
+import com.identitygateway.report.CsvReportService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -17,6 +18,8 @@ import java.util.UUID;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -30,6 +33,9 @@ class AuditControllerTest {
 
     @MockitoBean
     private AuditService auditService;
+
+    @MockitoBean
+    private CsvReportService csvReportService;
 
     @MockitoBean
     private BearerTokenResolver bearerTokenResolver;
@@ -57,5 +63,28 @@ class AuditControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].eventId").value("ca21e048-17f8-4b2f-a6b0-47c5d34172e2"))
                 .andExpect(jsonPath("$.data[0].eventType").value("AUTH_LOGIN_SUCCEEDED"));
+    }
+    @Test
+    void auditEventsReportReturnsCsvDownload() throws Exception {
+        UUID operatorId = UUID.fromString("9e04e2eb-d74a-4d55-987c-f38660aa3060");
+        List<AuditEventResponse> events = List.of(new AuditEventResponse(
+                UUID.fromString("ca21e048-17f8-4b2f-a6b0-47c5d34172e2"),
+                "AUTH_LOGIN_SUCCEEDED",
+                null,
+                null,
+                "Operator login succeeded.",
+                null,
+                Instant.parse("2026-07-25T00:00:00Z")
+        ));
+        when(auditService.recentEvents("AUTH_LOGIN_SUCCEEDED", operatorId, 100)).thenReturn(events);
+        when(csvReportService.auditEvents(events)).thenReturn("eventId,eventType\n1,AUTH_LOGIN_SUCCEEDED\n");
+
+        mockMvc.perform(get("/api/audit-events/report.csv")
+                        .param("eventType", "AUTH_LOGIN_SUCCEEDED")
+                        .param("operatorId", operatorId.toString()))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Disposition", "attachment; filename=\"audit-events.csv\""))
+                .andExpect(content().contentType("text/csv"))
+                .andExpect(content().string("eventId,eventType\n1,AUTH_LOGIN_SUCCEEDED\n"));
     }
 }

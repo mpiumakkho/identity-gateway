@@ -16,6 +16,7 @@ Current backend modules:
 - `audit`: persisted operator, authentication, and transaction audit timeline with admin inquiry
 - `config`: CORS, Spring Security configuration, request correlation, runtime metrics, and startup configuration validation
 - `common`: shared API response and error handling
+- `report`: CSV report rendering with safe escaping for export endpoints
 
 
 ## Database
@@ -70,6 +71,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 36. Production hardening flow: configurable login lockout, password policy enforcement, bootstrap password validation, and scheduled expired/revoked session cleanup.
 37. Observability flow: actuator liveness/readiness probes, authenticated metrics exposure, request correlation IDs, structured console logs, and Micrometer business gauges.
 38. Config validation flow: startup fail-fast checks for DOPA partner credentials, auth duration bounds, password policy consistency, session cleanup timing, and CORS origins.
+39. Export/report flow: CSV downloads for filtered verification sessions and audit events with safe CSV escaping and attachment headers.
 
 ## Data Handling
 

@@ -4,8 +4,11 @@ import com.identitygateway.auth.AuthenticatedOperator;
 import com.identitygateway.common.api.ApiResponse;
 import com.identitygateway.audit.AuditEventResponse;
 import com.identitygateway.dopa.DopaValidationHistoryResponse;
+import com.identitygateway.report.CsvReportService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -25,9 +28,11 @@ import java.util.UUID;
 public class VerificationController {
 
     private final VerificationService verificationService;
+    private final CsvReportService csvReportService;
 
-    public VerificationController(VerificationService verificationService) {
+    public VerificationController(VerificationService verificationService, CsvReportService csvReportService) {
         this.verificationService = verificationService;
+        this.csvReportService = csvReportService;
     }
 
     @GetMapping("/methods")
@@ -113,5 +118,21 @@ public class VerificationController {
             @Valid @RequestBody CloseVerificationRequest request
     ) {
         return ApiResponse.ok(verificationService.closeSession(operator, transactionId, request));
+    }
+    @GetMapping("/reports/sessions.csv")
+    public ResponseEntity<String> sessionsReport(
+            @RequestParam(required = false) String method,
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "100") int limit
+    ) {
+        String csv = csvReportService.verificationSessions(verificationService.recentSessions(method, status, limit));
+        return csvResponse("verification-sessions.csv", csv);
+    }
+
+    private static ResponseEntity<String> csvResponse(String filename, String csv) {
+        return ResponseEntity.ok()
+                .contentType(new MediaType("text", "csv"))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .body(csv);
     }
 }

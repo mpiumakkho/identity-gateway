@@ -273,6 +273,9 @@ Response data:
 ```
 
 Unsupported event types return `400` with code `BAD_REQUEST`.
+### `GET /audit-events/report.csv`
+
+Exports recent audit events as `text/csv`. Supports the same optional query parameters as `GET /audit-events`: `eventType`, `operatorId`, and `limit`. The response is returned as an attachment named `audit-events.csv`.
 ## Verification
 
 ### `GET /verification/dashboard`
@@ -320,6 +323,10 @@ Response data:
 ]
 ```
 
+
+### `GET /verification/reports/sessions.csv`
+
+Exports recent verification sessions as `text/csv`. Supports optional `method`, `status`, and `limit` filters using the same rules as `GET /verification/sessions`. The response is returned as an attachment named `verification-sessions.csv`.
 ### `GET /verification/sessions/{transactionId}`
 
 Returns one verification session by transaction ID. Requires authentication. Unknown IDs return `404` with code `NOT_FOUND`. The response includes optional masked workflow summaries when identity capture, DOPA validation, or closeout has been completed. Sensitive values such as national ID, laser code, raw Dip Chip payloads, passwords, and bearer tokens are not returned.
