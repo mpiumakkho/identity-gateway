@@ -14,7 +14,7 @@ Current backend modules:
 - `identity`: shared citizen identity data protection, masking, validation, and manual identity normalization helpers
 - `dopa`: citizen registry validation, result persistence, validation history, and audit-safe response mapping
 - `audit`: persisted operator, authentication, and transaction audit timeline with admin inquiry
-- `config`: CORS and Spring Security configuration
+- `config`: CORS, Spring Security configuration, request correlation, and runtime metrics
 - `common`: shared API response and error handling
 
 
@@ -68,6 +68,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 34. Permission granularity flow: operator roles now map to explicit permissions used by backend authorization rules and frontend admin navigation.
 35. Session admin flow: admins can list and revoke active sessions for managed operators while preserving the current admin session during bulk self-revocation.
 36. Production hardening flow: configurable login lockout, password policy enforcement, bootstrap password validation, and scheduled expired/revoked session cleanup.
+37. Observability flow: actuator liveness/readiness probes, authenticated metrics exposure, request correlation IDs, structured console logs, and Micrometer business gauges.
 
 ## Data Handling
 

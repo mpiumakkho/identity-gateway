@@ -54,7 +54,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/system/health", "/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/api/system/health", "/actuator/health", "/actuator/health/**", "/actuator/info").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/verification/methods/catalog").hasAuthority(OperatorPermission.METHOD_CATALOG_MANAGE.name())
                         .requestMatchers(HttpMethod.PUT, "/api/verification/methods/*/enabled").hasAuthority(OperatorPermission.METHOD_CATALOG_MANAGE.name())

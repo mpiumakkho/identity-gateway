@@ -35,12 +35,16 @@ public interface VerificationSessionRepository extends JpaRepository<Verificatio
             """)
     List<VerificationStatusMetric> countByStatus();
 
+    long countByStatus(VerificationStatus status);
+
     @Query("""
             select session.method as method, count(session) as total
             from VerificationSessionEntity session
             group by session.method
             """)
     List<VerificationMethodMetric> countByMethod();
+
+    long countByMethod(VerificationMethod method);
 
     @EntityGraph(attributePaths = "createdBy")
     @Query("select session from VerificationSessionEntity session where session.id = :id")

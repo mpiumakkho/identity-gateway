@@ -69,6 +69,13 @@ AUTH_SESSION_CLEANUP_ENABLED=true
 AUTH_SESSION_CLEANUP_RETENTION=P30D
 AUTH_SESSION_CLEANUP_FIXED_DELAY=PT1H
 ```
+
+Observability settings:
+
+```text
+# Actuator exposes health, info, and metrics. Health probes are public; metrics use normal authentication.
+# Logs include X-Request-Id as requestId. Clients may send X-Request-Id or let the API generate one.
+```
 DOPA integration settings:
 
 ```text
@@ -86,6 +93,8 @@ Use `DOPA_MODE=partner` only when the partner endpoint and credentials are suppl
 ## Initial Endpoints
 
 - `GET /api/system/health` with service and database readiness
+- `GET /actuator/health`, `/actuator/health/liveness`, and `/actuator/health/readiness` for runtime probes
+- `GET /actuator/info` and authenticated `/actuator/metrics` for runtime observability
 - `POST /api/auth/login`
 - `GET /api/verification/methods` from the enabled method catalog
 - `GET /api/verification/methods/catalog` for admin catalog management
@@ -102,3 +111,12 @@ Use `DOPA_MODE=partner` only when the partner endpoint and credentials are suppl
 ## Security Notes
 
 Passwords are verified with Spring Security `PasswordEncoder` backed by BCrypt. Login failed-attempt lockout, password policy rules, and old-session cleanup are configurable through runtime environment variables. Admin operator management endpoints also hash new passwords with BCrypt and revoke active sessions after password changes or account disabling. Login returns an opaque bearer token while PostgreSQL stores only the token hash and expiry. Application endpoints reject missing, expired, revoked, or invalid tokens with `AUTHENTICATION_REQUIRED`. Do not commit passwords, salts, signing keys, API tokens, or partner credentials to the repository.
+
+## Observability
+
+Actuator health probes are enabled for infrastructure checks:
+
+- `/actuator/health/liveness`
+- `/actuator/health/readiness`
+
+Business metrics are registered through Micrometer with names such as `identity_gateway_verification_sessions`, `identity_gateway_verification_sessions_by_method`, `identity_gateway_operator_sessions_active`, and `identity_gateway_operators_locked`. Request logs include a correlation value from `X-Request-Id` when supplied, or a generated request ID when missing.

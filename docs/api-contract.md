@@ -18,6 +18,8 @@ All application responses use this envelope:
 Validation errors include field-level details in `errors`, while non-validation errors keep `errors` as
 ull`. Authentication failures use code `AUTHENTICATION_REQUIRED`; authorization failures use code `ACCESS_DENIED`.
 
+Every response includes `X-Request-Id`. Clients may provide this header to correlate requests across logs; otherwise the API generates one.
+
 Protected endpoints require an opaque bearer token:
 
 ```http
@@ -27,7 +29,7 @@ Authorization: Bearer <accessToken>
 
 ### `GET /system/health`
 
-Returns service health for local smoke checks. This endpoint is public.
+Returns service health for local smoke checks. This endpoint is public. Infrastructure probes can also use `/actuator/health/liveness` and `/actuator/health/readiness`; metrics remain behind normal authentication at `/actuator/metrics`.
 
 ## Authentication
 

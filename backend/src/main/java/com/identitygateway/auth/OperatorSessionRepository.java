@@ -16,6 +16,9 @@ public interface OperatorSessionRepository extends JpaRepository<OperatorSession
 
     List<OperatorSession> findByOperatorIdAndRevokedAtIsNull(UUID operatorId);
 
+    @Query("select count(session) from OperatorSession session where session.revokedAt is null and session.expiresAt > :now")
+    long countActiveSessions(@Param("now") Instant now);
+
     @Modifying
     @Query("delete from OperatorSession session where session.expiresAt < :expiredBefore or (session.revokedAt is not null and session.revokedAt < :revokedBefore)")
     int deleteExpiredOrRevokedBefore(@Param("expiredBefore") Instant expiredBefore, @Param("revokedBefore") Instant revokedBefore);

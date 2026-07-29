@@ -117,6 +117,18 @@ class SecurityIntegrationTest {
                 .andExpect(jsonPath("$.timestamp").exists());
     }
 
+    @Test
+    void actuatorHealthProbesArePublicButMetricsRequireAuthentication() throws Exception {
+        mockMvc.perform(get("/actuator/health/liveness"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/actuator/health/readiness"))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/actuator/metrics"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"));
+    }
     private void createSession(String accessToken) {
         createSession(accessToken, OperatorRole.OPERATIONS);
     }

@@ -25,11 +25,21 @@ management:
     enabled-by-default: false
     web:
       exposure:
-        include: health,info
+        include: health,info,metrics
   endpoint:
     health:
       enabled: true
+      probes:
+        enabled: true
+      show-details: never
     info:
+      enabled: true
+    metrics:
+      enabled: true
+  health:
+    livenessstate:
+      enabled: true
+    readinessstate:
       enabled: true
 
 app:
@@ -69,3 +79,7 @@ app:
       role: ${BOOTSTRAP_OPERATOR_ROLE:OPERATIONS}
   cors:
     allowed-origins: http://127.0.0.1:7000,http://localhost:7000
+
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd'T'HH:mm:ss.SSSXXX} level=%5p app=${spring.application.name} requestId=%X{requestId:-} thread=%t logger=%logger{36} message=\"%m\"%n%wEx"
