@@ -203,6 +203,47 @@ Request:
 ### `PUT /operators/{operatorId}/disabled`
 
 Disables an operator account and revokes active sessions. Admin operators cannot disable their own account. Unknown IDs return `404` with code `NOT_FOUND`.
+
+### `GET /operators/{operatorId}/sessions`
+
+Returns active sessions for an operator. Requires `OPERATOR_MANAGE` permission. Token hashes and raw bearer tokens are never returned.
+
+Response data:
+
+```json
+[
+  {
+    "sessionId": "uuid",
+    "current": false,
+    "createdAt": "2026-07-29T08:00:00Z",
+    "expiresAt": "2026-07-29T16:00:00Z"
+  }
+]
+```
+
+### `DELETE /operators/{operatorId}/sessions/{sessionId}`
+
+Revokes one active session for an operator. Admins cannot revoke their own current session from admin controls.
+
+Response data:
+
+```json
+{
+  "revokedSessions": 1
+}
+```
+
+### `DELETE /operators/{operatorId}/sessions`
+
+Revokes all active sessions for an operator. When the target operator is the current admin, the current session is kept active.
+
+Response data:
+
+```json
+{
+  "revokedSessions": 2
+}
+```
 ## Audit Inquiry
 
 ### `GET /audit-events`

@@ -137,6 +137,36 @@ class OperatorSessionServiceTest {
         assertThat(response.revoked()).isTrue();
         assertThat(otherSession.getRevokedAt()).isEqualTo(Instant.parse("2026-07-25T00:00:00Z"));
     }
+    @Test
+    void revokeSessionForAdminRevokesTargetSession() {
+        OperatorSessionService service = service(Duration.ofHours(8));
+        OperatorUser operator = OperatorUser.create("operator", "hash", "Operations User", OperatorRole.OPERATIONS);
+        operator.prePersist();
+        OperatorSession targetSession = OperatorSession.create(operator, tokenHashingService.hash("target-token"), Instant.parse("2026-07-25T01:00:00Z"));
+        targetSession.prePersist();
+        when(operatorSessionRepository.findById(targetSession.getId())).thenReturn(Optional.of(targetSession));
+
+        SessionRevocationSummaryResponse response = service.revokeSessionForAdmin(operator, targetSession.getId(), "admin-token");
+
+        assertThat(response.revokedSessions()).isEqualTo(1);
+        assertThat(targetSession.getRevokedAt()).isEqualTo(Instant.parse("2026-07-25T00:00:00Z"));
+    }
+
+    @Test
+    void revokeActiveSessionsForAdminCanKeepCurrentSession() {
+        OperatorSessionService service = service(Duration.ofHours(8));
+        OperatorUser admin = OperatorUser.create("admin", "hash", "Admin User", OperatorRole.ADMIN);
+        admin.prePersist();
+        OperatorSession currentSession = OperatorSession.create(admin, tokenHashingService.hash("current-token"), Instant.parse("2026-07-25T01:00:00Z"));
+        OperatorSession otherSession = OperatorSession.create(admin, tokenHashingService.hash("other-token"), Instant.parse("2026-07-25T01:00:00Z"));
+        when(operatorSessionRepository.findByOperatorIdAndRevokedAtIsNull(admin.getId())).thenReturn(List.of(currentSession, otherSession));
+
+        SessionRevocationSummaryResponse response = service.revokeActiveSessionsForAdmin(admin, "current-token", true);
+
+        assertThat(response.revokedSessions()).isEqualTo(1);
+        assertThat(currentSession.getRevokedAt()).isNull();
+        assertThat(otherSession.getRevokedAt()).isEqualTo(Instant.parse("2026-07-25T00:00:00Z"));
+    }
     private OperatorSessionService service(Duration sessionTtl) {
         return new OperatorSessionService(
                 operatorSessionRepository,

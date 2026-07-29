@@ -84,6 +84,51 @@ public class OperatorSessionService {
         return new SessionRevocationResponse(true);
     }
 
+    @Transactional(readOnly = true)
+    public List<OperatorSessionResponse> activeSessionsForAdmin(OperatorUser operator, String activeAccessToken) {
+        return activeSessions(operator, activeAccessToken);
+    }
+
+    @Transactional
+    public SessionRevocationSummaryResponse revokeSessionForAdmin(OperatorUser operator, UUID sessionId, String activeAccessToken) {
+        String activeTokenHash = tokenHashingService.hash(activeAccessToken);
+        OperatorSession session = operatorSessionRepository.findById(sessionId)
+                .filter(candidate -> candidate.getOperator().getId().equals(operator.getId()))
+                .orElseThrow(() -> new ResourceNotFoundException("Operator session not found."));
+
+        if (session.getTokenHash().equals(activeTokenHash)) {
+            throw new IllegalArgumentException("Current session cannot be revoked from admin session controls.");
+        }
+
+        Instant now = clock.instant();
+        if (session.isActive(now)) {
+            session.revoke(now);
+            return new SessionRevocationSummaryResponse(1);
+        }
+
+        return new SessionRevocationSummaryResponse(0);
+    }
+
+    @Transactional
+    public SessionRevocationSummaryResponse revokeActiveSessionsForAdmin(OperatorUser operator, String activeAccessToken, boolean keepCurrentSession) {
+        Instant now = clock.instant();
+        String activeTokenHash = tokenHashingService.hash(activeAccessToken);
+        int revokedSessions = 0;
+
+        for (OperatorSession session : operatorSessionRepository.findByOperatorIdAndRevokedAtIsNull(operator.getId())) {
+            if (!session.isActive(now)) {
+                continue;
+            }
+            if (keepCurrentSession && session.getTokenHash().equals(activeTokenHash)) {
+                continue;
+            }
+            session.revoke(now);
+            revokedSessions++;
+        }
+
+        return new SessionRevocationSummaryResponse(revokedSessions);
+    }
+
     @Transactional
     public void revokeActiveSessions(OperatorUser operator) {
         Instant now = clock.instant();

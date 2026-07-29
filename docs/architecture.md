@@ -65,7 +65,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 31. Build automation flow: Maven Wrapper and GitHub Actions run backend tests and frontend builds without requiring a local Maven installation.
 32. DOPA partner integration flow: DOPA validation can run through a configurable partner HTTP adapter with environment-provided credentials, timeout/retry controls, and technical-failure mapping while local mode remains available for development and tests.
 33. Dip Chip reader bridge flow: the frontend can call a localhost native bridge for real card-reader SDK access, populate the reviewed payload form, and submit through the existing backend persistence/audit boundary.
-34. Permission granularity flow: operator roles now map to explicit permissions used by backend authorization rules and frontend admin navigation.
+34. Permission granularity flow: operator roles now map to explicit permissions used by backend authorization rules and frontend admin navigation.`n35. Session admin flow: admins can list and revoke active sessions for managed operators while preserving the current admin session during bulk self-revocation.
 
 ## Data Handling
 

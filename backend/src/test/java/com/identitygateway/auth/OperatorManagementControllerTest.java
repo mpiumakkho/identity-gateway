@@ -24,6 +24,7 @@ import static org.hamcrest.Matchers.blankOrNullString;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -134,6 +135,55 @@ class OperatorManagementControllerTest {
                 .andExpect(jsonPath("$.data.disabledAt").value("2026-07-25T00:30:00Z"));
     }
 
+    @Test
+    void operatorSessionsReturnsActiveSessions() throws Exception {
+        setAuthenticatedAdmin();
+        UUID operatorId = UUID.fromString("17f9946f-f754-4929-aa27-92f8db7c4a88");
+        UUID sessionId = UUID.fromString("4ccf1d23-1be5-4356-af6f-cb7adf0b9426");
+        when(bearerTokenResolver.resolve("Bearer admin-token")).thenReturn(java.util.Optional.of("admin-token"));
+        when(operatorManagementService.operatorSessions(eq(operatorId), eq("admin-token")))
+                .thenReturn(List.of(new OperatorSessionResponse(
+                        sessionId,
+                        false,
+                        Instant.parse("2026-07-25T00:00:00Z"),
+                        Instant.parse("2026-07-25T08:00:00Z")
+                )));
+
+        mockMvc.perform(get("/api/operators/{operatorId}/sessions", operatorId)
+                        .header(org.springframework.http.HttpHeaders.AUTHORIZATION, "Bearer admin-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].sessionId").value("4ccf1d23-1be5-4356-af6f-cb7adf0b9426"))
+                .andExpect(jsonPath("$.data[0].current").value(false));
+    }
+
+    @Test
+    void revokeOperatorSessionReturnsRevocationSummary() throws Exception {
+        setAuthenticatedAdmin();
+        UUID operatorId = UUID.fromString("17f9946f-f754-4929-aa27-92f8db7c4a88");
+        UUID sessionId = UUID.fromString("4ccf1d23-1be5-4356-af6f-cb7adf0b9426");
+        when(bearerTokenResolver.resolve("Bearer admin-token")).thenReturn(java.util.Optional.of("admin-token"));
+        when(operatorManagementService.revokeOperatorSession(any(AuthenticatedOperator.class), eq(operatorId), eq(sessionId), eq("admin-token")))
+                .thenReturn(new SessionRevocationSummaryResponse(1));
+
+        mockMvc.perform(delete("/api/operators/{operatorId}/sessions/{sessionId}", operatorId, sessionId)
+                        .header(org.springframework.http.HttpHeaders.AUTHORIZATION, "Bearer admin-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.revokedSessions").value(1));
+    }
+
+    @Test
+    void revokeOperatorSessionsReturnsRevocationSummary() throws Exception {
+        setAuthenticatedAdmin();
+        UUID operatorId = UUID.fromString("17f9946f-f754-4929-aa27-92f8db7c4a88");
+        when(bearerTokenResolver.resolve("Bearer admin-token")).thenReturn(java.util.Optional.of("admin-token"));
+        when(operatorManagementService.revokeOperatorSessions(any(AuthenticatedOperator.class), eq(operatorId), eq("admin-token")))
+                .thenReturn(new SessionRevocationSummaryResponse(2));
+
+        mockMvc.perform(delete("/api/operators/{operatorId}/sessions", operatorId)
+                        .header(org.springframework.http.HttpHeaders.AUTHORIZATION, "Bearer admin-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.revokedSessions").value(2));
+    }
     private static OperatorUserResponse operatorResponse(boolean enabled) {
         return new OperatorUserResponse(
                 UUID.fromString("17f9946f-f754-4929-aa27-92f8db7c4a88"),

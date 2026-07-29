@@ -132,7 +132,7 @@ class SecurityIntegrationTest {
         operatorSessionRepository.save(OperatorSession.create(
                 operator,
                 tokenHashingService.hash(accessToken),
-                Instant.parse("2026-07-27T23:59:59Z")
+                Instant.parse("2026-07-30T23:59:59Z")
         ));
     }
 }

@@ -103,6 +103,52 @@ public class OperatorManagementService {
         return OperatorUserResponse.from(operator);
     }
 
+    @Transactional(readOnly = true)
+    public List<OperatorSessionResponse> operatorSessions(UUID operatorId, String activeAccessToken) {
+        return operatorSessionService.activeSessionsForAdmin(requireOperator(operatorId), activeAccessToken);
+    }
+
+    @Transactional
+    public SessionRevocationSummaryResponse revokeOperatorSession(
+            AuthenticatedOperator admin,
+            UUID operatorId,
+            UUID sessionId,
+            String activeAccessToken
+    ) {
+        OperatorUser operator = requireOperator(operatorId);
+        SessionRevocationSummaryResponse response = operatorSessionService.revokeSessionForAdmin(operator, sessionId, activeAccessToken);
+        recordSessionRevocation(admin, operator, response.revokedSessions(), sessionId);
+        return response;
+    }
+
+    @Transactional
+    public SessionRevocationSummaryResponse revokeOperatorSessions(
+            AuthenticatedOperator admin,
+            UUID operatorId,
+            String activeAccessToken
+    ) {
+        OperatorUser operator = requireOperator(operatorId);
+        boolean keepCurrentSession = admin.operatorId().equals(operator.getId());
+        SessionRevocationSummaryResponse response = operatorSessionService.revokeActiveSessionsForAdmin(operator, activeAccessToken, keepCurrentSession);
+        recordSessionRevocation(admin, operator, response.revokedSessions(), null);
+        return response;
+    }
+
+    private void recordSessionRevocation(AuthenticatedOperator admin, OperatorUser operator, int revokedSessions, UUID sessionId) {
+        if (revokedSessions == 0) {
+            return;
+        }
+
+        auditService.recordOperatorEvent(
+                AuditEventType.OPERATOR_SESSIONS_REVOKED,
+                admin.operatorId(),
+                "Operator sessions revoked.",
+                sessionId == null
+                        ? AuditService.metadata("operatorId", operator.getId().toString(), "username", operator.getUsername(), "revokedSessions", String.valueOf(revokedSessions))
+                        : AuditService.metadata("operatorId", operator.getId().toString(), "sessionId", sessionId.toString(), "revokedSessions", String.valueOf(revokedSessions))
+        );
+    }
+
     private OperatorUser requireOperator(UUID operatorId) {
         return operatorUserRepository.findById(operatorId)
                 .orElseThrow(() -> new ResourceNotFoundException(OPERATOR_NOT_FOUND_MESSAGE));

@@ -17,3 +17,14 @@ export type CreateOperatorPayload = {
   password: string;
   role: OperatorRole;
 };
+
+export type OperatorSession = {
+  sessionId: string;
+  current: boolean;
+  createdAt: string;
+  expiresAt: string;
+};
+
+export type SessionRevocationSummary = {
+  revokedSessions: number;
+};
