@@ -38,7 +38,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 3. Method flow: load enabled verification methods from the backend catalog, select `DIP_CHIP` or `MANUAL_ENTRY`, and create a transaction session.
 4. Manual identity flow: controlled citizen-data entry and validation.
 5. Dip Chip flow: card-reader payload capture and normalization. Done as a dedicated intake flow before DOPA integration.
-6. DOPA flow: citizen registry validation request, response mapping, and verified/rejected session status. Done with a local connector placeholder until partner integration details are configured.
+6. DOPA flow: citizen registry validation request, response mapping, and verified/rejected session status. Done with local mode for development and a configurable partner HTTP adapter for real integration.
 7. Summary flow: verification decision and transaction closeout. Done with persisted operator decision records.
 8. Audit flow: operator and transaction event timeline. Done with persisted audit events and a transaction timeline view.
 9. Transaction inquiry flow: method and status filtering for persisted verification sessions. Done with backend query filters and console controls.
@@ -74,6 +74,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 39. Export/report flow: CSV downloads for filtered verification sessions and audit events with safe CSV escaping and attachment headers.
 40. Advanced search flow: verification sessions and CSV reports support date ranges, created-by filters, multi-status combinations, and exact national-ID search while keeping response identity data masked.
 41. Deployment flow: container build files, production Compose stack, environment example, frontend Nginx proxy, and deployment notes for bootstrap and reverse proxy operation.
+42. Test/runtime polish flow: quieter test logging and roadmap wording aligned with implemented DOPA partner integration.
 
 ## Data Handling
 

@@ -1,0 +1,14 @@
+spring:
+  main:
+    banner-mode: off
+
+app:
+  cors:
+    allowed-origins: http://127.0.0.1:7000,http://localhost:7000
+
+logging:
+  level:
+    root: warn
+    com.identitygateway: warn
+    org.springframework: warn
+    org.springframework.boot.autoconfigure.logging.ConditionEvaluationReportLogger: off

@@ -10,3 +10,7 @@ spring:
     open-in-view: false
     hibernate:
       ddl-auto: create-drop
+
+app:
+  cors:
+    allowed-origins: http://127.0.0.1:7000,http://localhost:7000

@@ -62,6 +62,10 @@ For real card reads, run a local bridge service that wraps the selected reader S
 - Do not return raw sensitive identity inputs that are only needed for backend processing.
 - Build each verification flow independently before connecting it to the next flow.
 
+## Test Logging
+
+Test resources keep Spring and application logs at warning level and provide local CORS defaults so slice and integration tests use stable runtime validation settings. The `test` profile keeps database-specific H2 settings for integration-style tests.
+
 ## Runtime Config Checks
 
 The backend validates important runtime settings during startup. Local development can keep `DOPA_MODE=local`. When switching to `DOPA_MODE=partner`, provide `DOPA_BASE_URL`, `DOPA_VALIDATION_PATH`, and `DOPA_API_KEY` through the environment before starting the API.
