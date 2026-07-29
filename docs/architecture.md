@@ -75,6 +75,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 40. Advanced search flow: verification sessions and CSV reports support date ranges, created-by filters, multi-status combinations, and exact national-ID search while keeping response identity data masked.
 41. Deployment flow: container build files, production Compose stack, environment example, frontend Nginx proxy, and deployment notes for bootstrap and reverse proxy operation.
 42. Test/runtime polish flow: quieter test logging and roadmap wording aligned with implemented DOPA partner integration.
+43. Frontend transaction search flow: operator console exposes advanced session filters and CSV download using the backend search/export APIs.
 
 ## Data Handling
 

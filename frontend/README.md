@@ -38,3 +38,8 @@ The bridge contract is documented in `docs/dip-chip-reader-bridge.md`.
 ## Notes
 
 Vite uses `strictPort`, so development fails fast if port 7000 is already occupied.
+
+
+## Advanced transaction search
+
+The Transactions panel supports method, multi-status, result limit, created-by UUID, created date range, exact national ID lookup, and CSV export through the backend report endpoint.

@@ -14,6 +14,7 @@ import { MethodCatalogPanel } from "./MethodCatalogPanel";
 import { OperationsDashboardPanel } from "./OperationsDashboardPanel";
 import { SummaryPanel } from "./SummaryPanel";
 import { SystemHealthPanel } from "./SystemHealthPanel";
+import { nationalIdValidationMessage } from "./nationalId";
 import type { MethodId, VerificationMethodOption, VerificationSession } from "./types";
 
 const defaultMethods: VerificationMethodOption[] = [
@@ -26,6 +27,7 @@ const sessionLimitOptions = [20, 50, 100];
 
 const workflowSteps = ["Method", "Identity", "DOPA", "Summary"];
 const transactionIdPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const uuidPattern = transactionIdPattern;
 
 type VerificationShellProps = {
   operator: AuthSession;
@@ -36,8 +38,12 @@ type VerificationShellProps = {
 export function VerificationShell({ operator, onSessionExpired, onSignOut }: VerificationShellProps) {
   const [selectedMethod, setSelectedMethod] = useState<MethodId>("DIP_CHIP");
   const [sessionMethodFilter, setSessionMethodFilter] = useState<"ALL" | MethodId>("ALL");
-  const [sessionStatusFilter, setSessionStatusFilter] = useState("ALL");
+  const [sessionStatusFilters, setSessionStatusFilters] = useState<string[]>([]);
   const [sessionLimit, setSessionLimit] = useState(20);
+  const [createdByFilter, setCreatedByFilter] = useState("");
+  const [createdFromFilter, setCreatedFromFilter] = useState("");
+  const [createdToFilter, setCreatedToFilter] = useState("");
+  const [identityNationalIdFilter, setIdentityNationalIdFilter] = useState("");
   const [methodCatalog, setMethodCatalog] = useState<VerificationMethodOption[]>(defaultMethods);
   const [sessions, setSessions] = useState<VerificationSession[]>([]);
   const [activeSession, setActiveSession] = useState<VerificationSession | null>(null);
@@ -47,6 +53,7 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
   const [isLoadingDetail, setIsLoadingDetail] = useState(false);
   const [transactionLookup, setTransactionLookup] = useState("");
   const [isLookingUpTransaction, setIsLookingUpTransaction] = useState(false);
+  const [isExportingSessions, setIsExportingSessions] = useState(false);
   const activeWorkflowIndex = workflowIndex(activeSession?.status);
   const operatorInitials = (operator.displayName || operator.username).slice(0, 2).toUpperCase();
   const navigationItems = [
@@ -100,17 +107,15 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
       setError("");
 
       try {
-        const params = new URLSearchParams();
+        const params = buildSessionSearchParams();
+        const validationMessage = validateSessionSearchFilters();
 
-        if (sessionMethodFilter !== "ALL") {
-          params.set("method", sessionMethodFilter);
+        if (validationMessage) {
+          setError(validationMessage);
+          setSessions([]);
+          setActiveSession(null);
+          return;
         }
-
-        if (sessionStatusFilter !== "ALL") {
-          params.set("status", sessionStatusFilter);
-        }
-
-        params.set("limit", String(sessionLimit));
 
         const path = `/api/verification/sessions?${params.toString()}`;
         const response = await getJson<VerificationSession[]>(path, {
@@ -144,10 +149,118 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
     return () => {
       cancelled = true;
     };
-  }, [operator.accessToken, sessionMethodFilter, sessionStatusFilter, sessionLimit]);
+  }, [operator.accessToken, sessionMethodFilter, sessionStatusFilters, sessionLimit, createdByFilter, createdFromFilter, createdToFilter, identityNationalIdFilter]);
 
   function handleApiError(err: unknown, fallback: string) {
     handleApiFailure(err, fallback, onSessionExpired, setError);
+  }
+
+  function buildSessionSearchParams() {
+    const params = new URLSearchParams();
+
+    if (sessionMethodFilter !== "ALL") {
+      params.set("method", sessionMethodFilter);
+    }
+
+    if (sessionStatusFilters.length > 0) {
+      params.set("status", sessionStatusFilters.join(","));
+    }
+
+    if (createdByFilter.trim()) {
+      params.set("createdBy", createdByFilter.trim());
+    }
+
+    if (createdFromFilter) {
+      params.set("createdFrom", toStartOfDayInstant(createdFromFilter));
+    }
+
+    if (createdToFilter) {
+      params.set("createdTo", toEndOfDayInstant(createdToFilter));
+    }
+
+    if (identityNationalIdFilter.trim()) {
+      params.set("identityNationalId", identityNationalIdFilter.trim());
+    }
+
+    params.set("limit", String(sessionLimit));
+    return params;
+  }
+
+  function validateSessionSearchFilters() {
+    if (createdByFilter.trim() && !uuidPattern.test(createdByFilter.trim())) {
+      return "Created-by filter must be a valid operator UUID.";
+    }
+
+    if (createdFromFilter && createdToFilter && createdFromFilter > createdToFilter) {
+      return "Created-from date must be before or equal to created-to date.";
+    }
+
+    if (identityNationalIdFilter.trim()) {
+      return nationalIdValidationMessage(identityNationalIdFilter.trim());
+    }
+
+    return "";
+  }
+
+  function toggleSessionStatusFilter(status: string) {
+    setSessionStatusFilters((current) => (
+      current.includes(status)
+        ? current.filter((item) => item !== status)
+        : [...current, status]
+    ));
+  }
+
+  function clearSessionFilters() {
+    setSessionMethodFilter("ALL");
+    setSessionStatusFilters([]);
+    setSessionLimit(20);
+    setCreatedByFilter("");
+    setCreatedFromFilter("");
+    setCreatedToFilter("");
+    setIdentityNationalIdFilter("");
+  }
+
+  async function exportSessionsCsv() {
+    const validationMessage = validateSessionSearchFilters();
+
+    if (validationMessage) {
+      setError(validationMessage);
+      return;
+    }
+
+    setIsExportingSessions(true);
+    setError("");
+
+    try {
+      const response = await fetch(`/api/verification/reports/sessions.csv?${buildSessionSearchParams().toString()}`, {
+        headers: {
+          Authorization: `Bearer ${operator.accessToken}`
+        }
+      });
+
+      if (response.status === 401) {
+        onSessionExpired();
+        return;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Unable to export transactions. The server returned ${response.status}.`);
+      }
+
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "verification-sessions.csv";
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to export transactions.");
+    } finally {
+      setIsExportingSessions(false);
+    }
   }
 
   function mergeSession(nextSession: VerificationSession) {
@@ -176,7 +289,7 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
 
       if (response.data) {
         setSessionMethodFilter("ALL");
-        setSessionStatusFilter("ALL");
+        setSessionStatusFilters([]);
         mergeSession(response.data);
       }
     } catch (err) {
@@ -593,56 +706,117 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
                     {isLookingUpTransaction ? "Loading..." : "Lookup"}
                   </button>
                 </form>
-                <div className="grid gap-3 sm:grid-cols-[180px_220px_120px_auto] sm:items-end">
-                  <label className="grid gap-1 text-xs font-bold uppercase text-slate-500">
-                    Method
-                    <select
-                      className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold normal-case text-slate-700 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
-                      value={sessionMethodFilter}
-                      onChange={(event) => setSessionMethodFilter(event.target.value as "ALL" | MethodId)}
-                    >
-                      <option value="ALL">All methods</option>
-                      {methods.map((method) => (
-                        <option key={method.id} value={method.id}>
-                          {method.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="grid gap-1 text-xs font-bold uppercase text-slate-500">
-                    Status
-                    <select
-                      className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold normal-case text-slate-700 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
-                      value={sessionStatusFilter}
-                      onChange={(event) => setSessionStatusFilter(event.target.value)}
-                    >
-                      <option value="ALL">All statuses</option>
+                <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                  <div className="grid gap-3 sm:grid-cols-[180px_120px_minmax(160px,1fr)_auto] sm:items-end">
+                    <label className="grid gap-1 text-xs font-bold uppercase text-slate-500">
+                      Method
+                      <select
+                        className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold normal-case text-slate-700 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                        value={sessionMethodFilter}
+                        onChange={(event) => setSessionMethodFilter(event.target.value as "ALL" | MethodId)}
+                      >
+                        <option value="ALL">All methods</option>
+                        {methods.map((method) => (
+                          <option key={method.id} value={method.id}>
+                            {method.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="grid gap-1 text-xs font-bold uppercase text-slate-500">
+                      Limit
+                      <select
+                        className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold normal-case text-slate-700 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                        value={sessionLimit}
+                        onChange={(event) => setSessionLimit(Number(event.target.value))}
+                      >
+                        {sessionLimitOptions.map((limit) => (
+                          <option key={limit} value={limit}>
+                            {limit}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="grid gap-1 text-xs font-bold uppercase text-slate-500">
+                      Created By
+                      <input
+                        className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold normal-case text-slate-700 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                        placeholder="Operator UUID"
+                        value={createdByFilter}
+                        onChange={(event) => setCreatedByFilter(event.target.value)}
+                      />
+                    </label>
+                    <span className="rounded-md bg-white px-2.5 py-2 text-center text-xs font-bold text-slate-600 shadow-sm">{sessions.length}</span>
+                  </div>
+
+                  <div className="grid gap-3 sm:grid-cols-[160px_160px_minmax(180px,1fr)] sm:items-end">
+                    <label className="grid gap-1 text-xs font-bold uppercase text-slate-500">
+                      Created From
+                      <input
+                        className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold normal-case text-slate-700 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                        type="date"
+                        value={createdFromFilter}
+                        onChange={(event) => setCreatedFromFilter(event.target.value)}
+                      />
+                    </label>
+                    <label className="grid gap-1 text-xs font-bold uppercase text-slate-500">
+                      Created To
+                      <input
+                        className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold normal-case text-slate-700 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                        type="date"
+                        value={createdToFilter}
+                        onChange={(event) => setCreatedToFilter(event.target.value)}
+                      />
+                    </label>
+                    <label className="grid gap-1 text-xs font-bold uppercase text-slate-500">
+                      National ID
+                      <input
+                        className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold normal-case text-slate-700 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                        inputMode="numeric"
+                        placeholder="13 digits"
+                        value={identityNationalIdFilter}
+                        onChange={(event) => setIdentityNationalIdFilter(event.target.value.replace(/\D/g, "").slice(0, 13))}
+                      />
+                    </label>
+                  </div>
+
+                  <fieldset className="grid gap-2">
+                    <legend className="text-xs font-bold uppercase text-slate-500">Statuses</legend>
+                    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
                       {statusFilters.map((status) => (
-                        <option key={status} value={status}>
+                        <label key={status} className="flex min-h-9 items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-600 shadow-sm">
+                          <input
+                            className="size-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                            type="checkbox"
+                            checked={sessionStatusFilters.includes(status)}
+                            onChange={() => toggleSessionStatusFilter(status)}
+                          />
                           {status}
-                        </option>
+                        </label>
                       ))}
-                    </select>
-                  </label>
-                  <label className="grid gap-1 text-xs font-bold uppercase text-slate-500">
-                    Limit
-                    <select
-                      className="min-h-10 rounded-lg border border-slate-200 bg-white px-3 text-sm font-semibold normal-case text-slate-700 shadow-sm focus:border-teal-500 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
-                      value={sessionLimit}
-                      onChange={(event) => setSessionLimit(Number(event.target.value))}
+                    </div>
+                  </fieldset>
+
+                  <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                    <button
+                      className="min-h-10 rounded-lg border border-slate-200 bg-white px-4 text-sm font-bold text-slate-700 shadow-sm transition hover:bg-slate-100"
+                      type="button"
+                      onClick={clearSessionFilters}
                     >
-                      {sessionLimitOptions.map((limit) => (
-                        <option key={limit} value={limit}>
-                          {limit}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <span className="rounded-md bg-slate-100 px-2.5 py-2 text-center text-xs font-bold text-slate-600">{sessions.length}</span>
+                      Clear
+                    </button>
+                    <button
+                      className="min-h-10 rounded-lg bg-teal-700 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-teal-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+                      type="button"
+                      onClick={() => void exportSessionsCsv()}
+                      disabled={isExportingSessions || isLoadingSessions}
+                    >
+                      {isExportingSessions ? "Exporting..." : "Export CSV"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
-
             {isLoadingSessions ? (
               <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-8 text-center text-sm font-medium text-slate-500">Loading sessions...</div>
             ) : sessions.length > 0 ? (
@@ -709,6 +883,14 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
       </div>
     </main>
   );
+}
+
+function toStartOfDayInstant(date: string) {
+  return `${date}T00:00:00Z`;
+}
+
+function toEndOfDayInstant(date: string) {
+  return `${date}T23:59:59Z`;
 }
 
 function formatDate(value?: string | null) {
