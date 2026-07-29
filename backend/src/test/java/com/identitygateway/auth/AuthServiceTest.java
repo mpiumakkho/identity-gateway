@@ -10,7 +10,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -33,13 +36,19 @@ class AuthServiceTest {
     @Mock
     private AuditService auditService;
 
+    private final Clock clock = Clock.fixed(Instant.parse("2026-07-25T00:00:00Z"), ZoneOffset.UTC);
     private PasswordEncoder passwordEncoder;
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
         passwordEncoder = new BCryptPasswordEncoder();
-        authService = new AuthService(operatorUserRepository, passwordEncoder, operatorSessionService, auditService);
+        AuthHardeningProperties properties = hardeningProperties();
+        authService = new AuthService(operatorUserRepository, passwordEncoder, operatorSessionService, auditService, properties, new PasswordPolicyService(properties), clock);
+    }
+
+    private static AuthHardeningProperties hardeningProperties() {
+        return new AuthHardeningProperties();
     }
 
     @Test
@@ -78,6 +87,57 @@ class AuthServiceTest {
         verify(operatorSessionService, never()).createSession(user);
     }
 
+    @Test
+    void loginLocksAccountAfterConfiguredFailedAttempts() {
+        AuthHardeningProperties properties = hardeningProperties();
+        properties.getLockout().setMaxFailedAttempts(2);
+        properties.getLockout().setDuration(Duration.ofMinutes(20));
+        AuthService service = new AuthService(
+                operatorUserRepository,
+                passwordEncoder,
+                operatorSessionService,
+                auditService,
+                properties,
+                new PasswordPolicyService(properties),
+                clock
+        );
+        String passwordHash = passwordEncoder.encode("Correct-password-123");
+        OperatorUser user = OperatorUser.create("operator", passwordHash, "Operations User", OperatorRole.OPERATIONS);
+        user.prePersist();
+        when(operatorUserRepository.findByUsernameIgnoreCase("operator")).thenReturn(Optional.of(user));
+
+        assertThatThrownBy(() -> service.login(new LoginRequest("operator", "wrong-password")))
+                .isInstanceOf(AuthenticationFailedException.class);
+        assertThat(user.getFailedLoginAttempts()).isEqualTo(1);
+        assertThat(user.getLockedUntil()).isNull();
+
+        assertThatThrownBy(() -> service.login(new LoginRequest("operator", "wrong-password")))
+                .isInstanceOf(AuthenticationFailedException.class);
+        assertThat(user.getFailedLoginAttempts()).isEqualTo(2);
+        assertThat(user.getLockedUntil()).isEqualTo(Instant.parse("2026-07-25T00:20:00Z"));
+
+        assertThatThrownBy(() -> service.login(new LoginRequest("operator", "Correct-password-123")))
+                .isInstanceOf(AuthenticationFailedException.class);
+        verify(operatorSessionService, never()).createSession(user);
+    }
+
+    @Test
+    void successfulLoginClearsPreviousFailedAttempts() {
+        String passwordHash = passwordEncoder.encode("Correct-password-123");
+        OperatorUser user = OperatorUser.create("operator", passwordHash, "Operations User", OperatorRole.OPERATIONS);
+        user.prePersist();
+        user.recordFailedLogin(Instant.parse("2026-07-24T23:00:00Z"));
+        Instant expiresAt = Instant.parse("2026-07-25T08:00:00Z");
+
+        when(operatorUserRepository.findByUsernameIgnoreCase("operator")).thenReturn(Optional.of(user));
+        when(operatorSessionService.createSession(user)).thenReturn(new IssuedOperatorSession("issued-token", expiresAt));
+
+        LoginResponse response = authService.login(new LoginRequest("operator", "Correct-password-123"));
+
+        assertThat(response.accessToken()).isEqualTo("issued-token");
+        assertThat(user.getFailedLoginAttempts()).isZero();
+        assertThat(user.getLockedUntil()).isNull();
+    }
     @Test
     void activeSessionsReturnsCurrentOperatorSessions() {
         OperatorUser user = operator("operator");
@@ -123,11 +183,11 @@ class AuthServiceTest {
         PasswordChangeResponse response = authService.changeOwnPassword(
                 operator,
                 "current-token",
-                new ChangeOwnPasswordRequest("current-password", "new-secret-123")
+                new ChangeOwnPasswordRequest("current-password", "New-secret-123")
         );
 
         assertThat(response.passwordChanged()).isTrue();
-        assertThat(passwordEncoder.matches("new-secret-123", user.getPasswordHash())).isTrue();
+        assertThat(passwordEncoder.matches("New-secret-123", user.getPasswordHash())).isTrue();
         verify(operatorSessionService).revokeActiveSessionsExcept(user, "current-token");
     }
 
@@ -143,7 +203,7 @@ class AuthServiceTest {
         assertThatThrownBy(() -> authService.changeOwnPassword(
                 operator,
                 "current-token",
-                new ChangeOwnPasswordRequest("wrong-password", "new-secret-123")
+                new ChangeOwnPasswordRequest("wrong-password", "New-secret-123")
         ))
                 .isInstanceOf(AuthenticationFailedException.class)
                 .hasMessage("Invalid username or password.");

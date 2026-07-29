@@ -20,19 +20,22 @@ public class OperatorSessionService {
     private final TokenHashingService tokenHashingService;
     private final Clock clock;
     private final Duration sessionTtl;
+    private final AuthHardeningProperties hardeningProperties;
 
     public OperatorSessionService(
             OperatorSessionRepository operatorSessionRepository,
             SessionTokenGenerator tokenGenerator,
             TokenHashingService tokenHashingService,
             Clock clock,
-            @Value("${app.auth.session-ttl:PT8H}") Duration sessionTtl
+            @Value("${app.auth.session-ttl:PT8H}") Duration sessionTtl,
+            AuthHardeningProperties hardeningProperties
     ) {
         this.operatorSessionRepository = operatorSessionRepository;
         this.tokenGenerator = tokenGenerator;
         this.tokenHashingService = tokenHashingService;
         this.clock = clock;
         this.sessionTtl = sessionTtl;
+        this.hardeningProperties = hardeningProperties;
     }
 
     @Transactional
@@ -153,6 +156,13 @@ public class OperatorSessionService {
         operatorSessionRepository.findByTokenHash(tokenHashingService.hash(accessToken))
                 .filter(session -> session.isActive(now))
                 .ifPresent(session -> session.revoke(now));
+    }
+
+    @Transactional
+    public int cleanupExpiredAndRevokedSessions() {
+        AuthHardeningProperties.SessionCleanup cleanup = hardeningProperties.getSessionCleanup();
+        Instant cutoff = clock.instant().minus(cleanup.getRetention());
+        return operatorSessionRepository.deleteExpiredOrRevokedBefore(cutoff, cutoff);
     }
 
     private AuthenticatedOperator toAuthenticatedOperator(OperatorSession session) {

@@ -7,6 +7,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -19,17 +20,26 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final OperatorSessionService operatorSessionService;
     private final AuditService auditService;
+    private final AuthHardeningProperties hardeningProperties;
+    private final PasswordPolicyService passwordPolicyService;
+    private final Clock clock;
 
     public AuthService(
             OperatorUserRepository operatorUserRepository,
             PasswordEncoder passwordEncoder,
             OperatorSessionService operatorSessionService,
-            AuditService auditService
+            AuditService auditService,
+            AuthHardeningProperties hardeningProperties,
+            PasswordPolicyService passwordPolicyService,
+            Clock clock
     ) {
         this.operatorUserRepository = operatorUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.operatorSessionService = operatorSessionService;
         this.auditService = auditService;
+        this.hardeningProperties = hardeningProperties;
+        this.passwordPolicyService = passwordPolicyService;
+        this.clock = clock;
     }
 
     @Transactional(noRollbackFor = AuthenticationFailedException.class)
@@ -47,7 +57,19 @@ public class AuthService {
         }
 
         OperatorUser user = userResult.get();
+        Instant now = clock.instant();
+        if (user.isLocked(now)) {
+            auditService.recordOperatorEvent(
+                    AuditEventType.AUTH_LOGIN_FAILED,
+                    user,
+                    "Operator login rejected because the account is locked.",
+                    AuditService.metadata("username", user.getUsername())
+            );
+            throw new AuthenticationFailedException();
+        }
+
         if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            recordFailedLogin(user);
             auditService.recordSystemEvent(
                     AuditEventType.AUTH_LOGIN_FAILED,
                     "Operator login failed.",
@@ -56,6 +78,7 @@ public class AuthService {
             throw new AuthenticationFailedException();
         }
 
+        user.clearLoginLock();
         IssuedOperatorSession session = operatorSessionService.createSession(user);
         auditService.recordOperatorEvent(
                 AuditEventType.AUTH_LOGIN_SUCCEEDED,
@@ -70,7 +93,7 @@ public class AuthService {
                 user.getDisplayName(),
                 user.getRole(),
                 user.getRole().permissions(),
-                Instant.now(),
+                clock.instant(),
                 session.accessToken(),
                 session.expiresAt()
         );
@@ -105,6 +128,8 @@ public class AuthService {
             throw new AuthenticationFailedException();
         }
 
+        passwordPolicyService.validate(request.newPassword());
+
         if (passwordEncoder.matches(request.newPassword(), user.getPasswordHash())) {
             throw new IllegalArgumentException("New password must be different from the current password.");
         }
@@ -130,6 +155,19 @@ public class AuthService {
                 "Operator logged out.",
                 AuditService.metadata("username", operator.username())
         );
+    }
+
+    private void recordFailedLogin(OperatorUser user) {
+        AuthHardeningProperties.Lockout lockout = hardeningProperties.getLockout();
+        if (!lockout.isEnabled()) {
+            return;
+        }
+
+        int nextFailedAttempts = user.getFailedLoginAttempts() + 1;
+        Instant lockedUntil = nextFailedAttempts >= lockout.getMaxFailedAttempts()
+                ? clock.instant().plus(lockout.getDuration())
+                : null;
+        user.recordFailedLogin(lockedUntil);
     }
 
     private OperatorUser requireEnabledOperator(AuthenticatedOperator operator) {

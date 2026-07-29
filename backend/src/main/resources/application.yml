@@ -44,6 +44,22 @@ app:
       retry-attempts: ${DOPA_RETRY_ATTEMPTS:1}
   auth:
     session-ttl: PT8H
+    hardening:
+      lockout:
+        enabled: ${AUTH_LOCKOUT_ENABLED:true}
+        max-failed-attempts: ${AUTH_LOCKOUT_MAX_FAILED_ATTEMPTS:5}
+        duration: ${AUTH_LOCKOUT_DURATION:PT15M}
+      password:
+        min-length: ${AUTH_PASSWORD_MIN_LENGTH:12}
+        max-length: ${AUTH_PASSWORD_MAX_LENGTH:128}
+        require-uppercase: ${AUTH_PASSWORD_REQUIRE_UPPERCASE:true}
+        require-lowercase: ${AUTH_PASSWORD_REQUIRE_LOWERCASE:true}
+        require-digit: ${AUTH_PASSWORD_REQUIRE_DIGIT:true}
+        require-special: ${AUTH_PASSWORD_REQUIRE_SPECIAL:false}
+      session-cleanup:
+        enabled: ${AUTH_SESSION_CLEANUP_ENABLED:true}
+        retention: ${AUTH_SESSION_CLEANUP_RETENTION:P30D}
+        fixed-delay: ${AUTH_SESSION_CLEANUP_FIXED_DELAY:PT1H}
   bootstrap:
     operator:
       enabled: ${BOOTSTRAP_OPERATOR_ENABLED:false}

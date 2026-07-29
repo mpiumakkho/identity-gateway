@@ -42,13 +42,19 @@ class OperatorManagementServiceTest {
     @BeforeEach
     void setUp() {
         passwordEncoder = new BCryptPasswordEncoder();
+        AuthHardeningProperties properties = hardeningProperties();
         operatorManagementService = new OperatorManagementService(
                 operatorUserRepository,
                 passwordEncoder,
                 operatorSessionService,
                 auditService,
-                clock
+                clock,
+                new PasswordPolicyService(properties)
         );
+    }
+
+    private static AuthHardeningProperties hardeningProperties() {
+        return new AuthHardeningProperties();
     }
 
     @Test
@@ -76,7 +82,7 @@ class OperatorManagementServiceTest {
 
         OperatorUserResponse response = operatorManagementService.createOperator(
                 admin,
-                new CreateOperatorRequest("new.operator", "very-secret-123", "New Operator", "OPERATIONS")
+                new CreateOperatorRequest("new.operator", "Very-secret-123", "New Operator", "OPERATIONS")
         );
 
         assertThat(response.operatorId()).isNotNull();
@@ -93,7 +99,7 @@ class OperatorManagementServiceTest {
 
         assertThatThrownBy(() -> operatorManagementService.createOperator(
                 admin(),
-                new CreateOperatorRequest("operator", "very-secret-123", "Operator", "OPERATIONS")
+                new CreateOperatorRequest("operator", "Very-secret-123", "Operator", "OPERATIONS")
         ))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("Operator username already exists.");
@@ -108,12 +114,12 @@ class OperatorManagementServiceTest {
         OperatorUserResponse response = operatorManagementService.changePassword(
                 admin(),
                 user.getId(),
-                new ChangeOperatorPasswordRequest("new-secret-123")
+                new ChangeOperatorPasswordRequest("New-secret-123")
         );
 
         assertThat(response.operatorId()).isEqualTo(user.getId());
         assertThat(user.getPasswordHash()).isNotEqualTo(oldHash);
-        assertThat(passwordEncoder.matches("new-secret-123", user.getPasswordHash())).isTrue();
+        assertThat(passwordEncoder.matches("New-secret-123", user.getPasswordHash())).isTrue();
         verify(operatorSessionService).revokeActiveSessions(user);
     }
 

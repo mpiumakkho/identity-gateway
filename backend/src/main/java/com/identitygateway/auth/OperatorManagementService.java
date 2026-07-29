@@ -21,19 +21,22 @@ public class OperatorManagementService {
     private final OperatorSessionService operatorSessionService;
     private final AuditService auditService;
     private final Clock clock;
+    private final PasswordPolicyService passwordPolicyService;
 
     public OperatorManagementService(
             OperatorUserRepository operatorUserRepository,
             PasswordEncoder passwordEncoder,
             OperatorSessionService operatorSessionService,
             AuditService auditService,
-            Clock clock
+            Clock clock,
+            PasswordPolicyService passwordPolicyService
     ) {
         this.operatorUserRepository = operatorUserRepository;
         this.passwordEncoder = passwordEncoder;
         this.operatorSessionService = operatorSessionService;
         this.auditService = auditService;
         this.clock = clock;
+        this.passwordPolicyService = passwordPolicyService;
     }
 
     @Transactional(readOnly = true)
@@ -50,6 +53,7 @@ public class OperatorManagementService {
             throw new IllegalArgumentException("Operator username already exists.");
         }
 
+        passwordPolicyService.validate(request.password());
         OperatorRole role = parseRole(request.role());
         OperatorUser operator = operatorUserRepository.save(OperatorUser.create(
                 username,
@@ -70,6 +74,7 @@ public class OperatorManagementService {
     @Transactional
     public OperatorUserResponse changePassword(AuthenticatedOperator admin, UUID operatorId, ChangeOperatorPasswordRequest request) {
         OperatorUser operator = requireOperator(operatorId);
+        passwordPolicyService.validate(request.password());
         operator.changePasswordHash(passwordEncoder.encode(request.password()));
         operatorSessionService.revokeActiveSessions(operator);
         auditService.recordOperatorEvent(

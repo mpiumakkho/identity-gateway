@@ -167,13 +167,35 @@ class OperatorSessionServiceTest {
         assertThat(currentSession.getRevokedAt()).isNull();
         assertThat(otherSession.getRevokedAt()).isEqualTo(Instant.parse("2026-07-25T00:00:00Z"));
     }
+
+    @Test
+    void cleanupExpiredAndRevokedSessionsUsesConfiguredRetention() {
+        AuthHardeningProperties properties = new AuthHardeningProperties();
+        properties.getSessionCleanup().setRetention(Duration.ofDays(10));
+        OperatorSessionService service = new OperatorSessionService(
+                operatorSessionRepository,
+                tokenGenerator,
+                tokenHashingService,
+                clock,
+                Duration.ofHours(8),
+                properties
+        );
+        Instant cutoff = Instant.parse("2026-07-15T00:00:00Z");
+        when(operatorSessionRepository.deleteExpiredOrRevokedBefore(cutoff, cutoff)).thenReturn(3);
+
+        int deletedSessions = service.cleanupExpiredAndRevokedSessions();
+
+        assertThat(deletedSessions).isEqualTo(3);
+        verify(operatorSessionRepository).deleteExpiredOrRevokedBefore(cutoff, cutoff);
+    }
     private OperatorSessionService service(Duration sessionTtl) {
         return new OperatorSessionService(
                 operatorSessionRepository,
                 tokenGenerator,
                 tokenHashingService,
                 clock,
-                sessionTtl
+                sessionTtl,
+                new AuthHardeningProperties()
         );
     }
 }

@@ -22,12 +22,14 @@ class OperatorBootstrapRunnerTest {
     private OperatorUserRepository operatorUserRepository;
 
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final PasswordPolicyService passwordPolicyService = new PasswordPolicyService(new AuthHardeningProperties());
 
     @Test
     void runCreatesOperatorWhenBootstrapIsEnabled() {
         OperatorBootstrapRunner runner = new OperatorBootstrapRunner(
                 operatorUserRepository,
                 passwordEncoder,
+                passwordPolicyService,
                 true,
                 "operator",
                 "StrongPassword123!",
@@ -53,6 +55,7 @@ class OperatorBootstrapRunnerTest {
         OperatorBootstrapRunner runner = new OperatorBootstrapRunner(
                 operatorUserRepository,
                 passwordEncoder,
+                passwordPolicyService,
                 false,
                 "operator",
                 "StrongPassword123!",
@@ -70,6 +73,7 @@ class OperatorBootstrapRunnerTest {
         OperatorBootstrapRunner runner = new OperatorBootstrapRunner(
                 operatorUserRepository,
                 passwordEncoder,
+                passwordPolicyService,
                 true,
                 "operator",
                 "",

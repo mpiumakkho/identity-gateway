@@ -45,6 +45,12 @@ public class OperatorUser {
     @Column(name = "disabled_at")
     private Instant disabledAt;
 
+    @Column(name = "failed_login_attempts", nullable = false)
+    private int failedLoginAttempts;
+
+    @Column(name = "locked_until")
+    private Instant lockedUntil;
+
     protected OperatorUser() {
     }
 
@@ -93,6 +99,7 @@ public class OperatorUser {
 
     public void changePasswordHash(String passwordHash) {
         this.passwordHash = passwordHash;
+        clearLoginLock();
     }
 
     public String getDisplayName() {
@@ -127,5 +134,27 @@ public class OperatorUser {
 
     public Instant getDisabledAt() {
         return disabledAt;
+    }
+
+    public int getFailedLoginAttempts() {
+        return failedLoginAttempts;
+    }
+
+    public Instant getLockedUntil() {
+        return lockedUntil;
+    }
+
+    public boolean isLocked(Instant now) {
+        return lockedUntil != null && lockedUntil.isAfter(now);
+    }
+
+    public void recordFailedLogin(Instant lockedUntil) {
+        failedLoginAttempts++;
+        this.lockedUntil = lockedUntil;
+    }
+
+    public void clearLoginLock() {
+        failedLoginAttempts = 0;
+        lockedUntil = null;
     }
 }

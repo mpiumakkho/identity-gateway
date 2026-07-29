@@ -59,7 +59,7 @@ Response data:
 }
 ```
 
-Invalid credentials return `401` with code `INVALID_CREDENTIALS`.
+Invalid credentials and locked accounts return `401` with code `INVALID_CREDENTIALS` so the API does not disclose account state.
 
 ### `GET /auth/me`
 
@@ -118,7 +118,7 @@ Request:
 ```json
 {
   "currentPassword": "current-secret-123",
-  "newPassword": "new-secret-123"
+  "newPassword": "New-secret-123"
 }
 ```
 
@@ -180,7 +180,7 @@ Request:
 ```json
 {
   "username": "operator",
-  "password": "very-secret-123",
+  "password": "Very-secret-123",
   "displayName": "Operations User",
   "role": "OPERATIONS"
 }
@@ -196,7 +196,7 @@ Request:
 
 ```json
 {
-  "password": "new-secret-123"
+  "password": "New-secret-123"
 }
 ```
 

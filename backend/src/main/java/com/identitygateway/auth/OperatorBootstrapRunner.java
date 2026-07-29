@@ -12,6 +12,7 @@ public class OperatorBootstrapRunner implements ApplicationRunner {
 
     private final OperatorUserRepository operatorUserRepository;
     private final PasswordEncoder passwordEncoder;
+    private final PasswordPolicyService passwordPolicyService;
     private final boolean enabled;
     private final String username;
     private final String password;
@@ -21,6 +22,7 @@ public class OperatorBootstrapRunner implements ApplicationRunner {
     public OperatorBootstrapRunner(
             OperatorUserRepository operatorUserRepository,
             PasswordEncoder passwordEncoder,
+            PasswordPolicyService passwordPolicyService,
             @Value("${app.bootstrap.operator.enabled:false}") boolean enabled,
             @Value("${app.bootstrap.operator.username:}") String username,
             @Value("${app.bootstrap.operator.password:}") String password,
@@ -29,6 +31,7 @@ public class OperatorBootstrapRunner implements ApplicationRunner {
     ) {
         this.operatorUserRepository = operatorUserRepository;
         this.passwordEncoder = passwordEncoder;
+        this.passwordPolicyService = passwordPolicyService;
         this.enabled = enabled;
         this.username = username;
         this.password = password;
@@ -46,6 +49,7 @@ public class OperatorBootstrapRunner implements ApplicationRunner {
         String normalizedUsername = requireText(username, "Bootstrap operator username is required.");
         String rawPassword = requireText(password, "Bootstrap operator password is required.");
         String normalizedDisplayName = requireText(displayName, "Bootstrap operator display name is required.");
+        passwordPolicyService.validate(rawPassword);
 
         if (operatorUserRepository.existsByUsernameIgnoreCase(normalizedUsername)) {
             return;

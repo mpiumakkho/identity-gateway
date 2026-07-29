@@ -15,7 +15,7 @@ Create a local operator account on first run by setting bootstrap environment va
 ```bash
 set BOOTSTRAP_OPERATOR_ENABLED=true
 set BOOTSTRAP_OPERATOR_USERNAME=operator
-set BOOTSTRAP_OPERATOR_PASSWORD=change-this-password
+set BOOTSTRAP_OPERATOR_PASSWORD=Change-this-password-123
 set BOOTSTRAP_OPERATOR_DISPLAY_NAME=Operations User
 ```
 
@@ -53,6 +53,22 @@ BOOTSTRAP_OPERATOR_DISPLAY_NAME=Operations User
 BOOTSTRAP_OPERATOR_ROLE=OPERATIONS
 ```
 
+Authentication hardening settings:
+
+```text
+AUTH_LOCKOUT_ENABLED=true
+AUTH_LOCKOUT_MAX_FAILED_ATTEMPTS=5
+AUTH_LOCKOUT_DURATION=PT15M
+AUTH_PASSWORD_MIN_LENGTH=12
+AUTH_PASSWORD_MAX_LENGTH=128
+AUTH_PASSWORD_REQUIRE_UPPERCASE=true
+AUTH_PASSWORD_REQUIRE_LOWERCASE=true
+AUTH_PASSWORD_REQUIRE_DIGIT=true
+AUTH_PASSWORD_REQUIRE_SPECIAL=false
+AUTH_SESSION_CLEANUP_ENABLED=true
+AUTH_SESSION_CLEANUP_RETENTION=P30D
+AUTH_SESSION_CLEANUP_FIXED_DELAY=PT1H
+```
 DOPA integration settings:
 
 ```text
@@ -65,7 +81,9 @@ DOPA_READ_TIMEOUT=PT10S
 DOPA_RETRY_ATTEMPTS=1
 ```
 
-Use `DOPA_MODE=partner` only when the partner endpoint and credentials are supplied through the runtime environment.`r`n`r`n## Initial Endpoints
+Use `DOPA_MODE=partner` only when the partner endpoint and credentials are supplied through the runtime environment.
+
+## Initial Endpoints
 
 - `GET /api/system/health` with service and database readiness
 - `POST /api/auth/login`
@@ -83,4 +101,4 @@ Use `DOPA_MODE=partner` only when the partner endpoint and credentials are suppl
 
 ## Security Notes
 
-Passwords are verified with Spring Security `PasswordEncoder` backed by BCrypt. Admin operator management endpoints also hash new passwords with BCrypt and revoke active sessions after password changes or account disabling. Login returns an opaque bearer token while PostgreSQL stores only the token hash and expiry. Application endpoints reject missing, expired, revoked, or invalid tokens with `AUTHENTICATION_REQUIRED`. Do not commit passwords, salts, signing keys, API tokens, or partner credentials to the repository.
+Passwords are verified with Spring Security `PasswordEncoder` backed by BCrypt. Login failed-attempt lockout, password policy rules, and old-session cleanup are configurable through runtime environment variables. Admin operator management endpoints also hash new passwords with BCrypt and revoke active sessions after password changes or account disabling. Login returns an opaque bearer token while PostgreSQL stores only the token hash and expiry. Application endpoints reject missing, expired, revoked, or invalid tokens with `AUTHENTICATION_REQUIRED`. Do not commit passwords, salts, signing keys, API tokens, or partner credentials to the repository.
