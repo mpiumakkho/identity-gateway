@@ -112,6 +112,10 @@ Use `DOPA_MODE=partner` only when the partner endpoint and credentials are suppl
 
 Passwords are verified with Spring Security `PasswordEncoder` backed by BCrypt. Login failed-attempt lockout, password policy rules, and old-session cleanup are configurable through runtime environment variables. Admin operator management endpoints also hash new passwords with BCrypt and revoke active sessions after password changes or account disabling. Login returns an opaque bearer token while PostgreSQL stores only the token hash and expiry. Application endpoints reject missing, expired, revoked, or invalid tokens with `AUTHENTICATION_REQUIRED`. Do not commit passwords, salts, signing keys, API tokens, or partner credentials to the repository.
 
+
+Configuration validation:
+
+The API validates runtime configuration during startup and fails fast with a clear error when required settings are missing or invalid. Important checks include positive session/lockout/cleanup durations, password policy min/max consistency, at least one CORS origin, and required DOPA partner settings when `DOPA_MODE=partner`.
 ## Observability
 
 Actuator health probes are enabled for infrastructure checks:

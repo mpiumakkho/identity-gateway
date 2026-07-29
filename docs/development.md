@@ -61,3 +61,7 @@ For real card reads, run a local bridge service that wraps the selected reader S
 - Add tests beside domain logic as the workflow becomes concrete.
 - Do not return raw sensitive identity inputs that are only needed for backend processing.
 - Build each verification flow independently before connecting it to the next flow.
+
+## Runtime Config Checks
+
+The backend validates important runtime settings during startup. Local development can keep `DOPA_MODE=local`. When switching to `DOPA_MODE=partner`, provide `DOPA_BASE_URL`, `DOPA_VALIDATION_PATH`, and `DOPA_API_KEY` through the environment before starting the API.
