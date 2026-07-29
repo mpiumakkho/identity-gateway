@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { downloadFile, getJson, postJson } from "../../api/client";
-import { handleApiFailure } from "../../api/errors";
+import { handleApiFailure, isAuthenticationRequired } from "../../api/errors";
 import { AccountSecurityPanel } from "../auth/AccountSecurityPanel";
 import { AuditInquiryPanel } from "../audit/AuditInquiryPanel";
 import { AuditTimelinePanel } from "./AuditTimelinePanel";
@@ -232,31 +232,15 @@ export function VerificationShell({ operator, onSessionExpired, onSignOut }: Ver
     setError("");
 
     try {
-      const response = await fetch(`/api/verification/reports/sessions.csv?${buildSessionSearchParams().toString()}`, {
-        headers: {
-          Authorization: `Bearer ${operator.accessToken}`
-        }
+      await downloadFile(`/api/verification/reports/sessions.csv?${buildSessionSearchParams().toString()}`, "verification-sessions.csv", {
+        accessToken: operator.accessToken
       });
-
-      if (response.status === 401) {
+    } catch (err) {
+      if (isAuthenticationRequired(err)) {
         onSessionExpired();
         return;
       }
 
-      if (!response.ok) {
-        throw new Error(`Unable to export transactions. The server returned ${response.status}.`);
-      }
-
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "verification-sessions.csv";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-    } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to export transactions.");
     } finally {
       setIsExportingSessions(false);
