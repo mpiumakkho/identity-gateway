@@ -76,6 +76,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 41. Deployment flow: container build files, production Compose stack, environment example, frontend Nginx proxy, and deployment notes for bootstrap and reverse proxy operation.
 42. Test/runtime polish flow: quieter test logging and roadmap wording aligned with implemented DOPA partner integration.
 43. Frontend transaction search flow: operator console exposes advanced session filters and CSV download using the backend search/export APIs.
+44. Frontend audit export flow: admin audit inquiry exposes operator filtering and CSV download using the backend audit report API.
 
 ## Data Handling
 

@@ -49,6 +49,34 @@ export async function deleteJson<T>(path: string, options: RequestOptions = {}):
   return requestJson<T>(path, "DELETE", options);
 }
 
+export async function downloadFile(path: string, filename: string, options: RequestOptions = {}) {
+  const headers = new Headers();
+
+  if (options.accessToken) {
+    headers.set("Authorization", `Bearer ${options.accessToken}`);
+  }
+
+  const response = await fetch(path, { headers });
+
+  if (!response.ok) {
+    throw new ApiError(
+      response.status,
+      response.status === 401 ? "AUTHENTICATION_REQUIRED" : "DOWNLOAD_FAILED",
+      `Download failed with status ${response.status}`
+    );
+  }
+
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+}
+
 async function requestJson<T>(path: string, method: HttpMethod, options: RequestOptions): Promise<ApiResponse<T>> {
   const headers = new Headers();
 

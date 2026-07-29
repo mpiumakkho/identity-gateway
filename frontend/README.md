@@ -43,3 +43,7 @@ Vite uses `strictPort`, so development fails fast if port 7000 is already occupi
 ## Advanced transaction search
 
 The Transactions panel supports method, multi-status, result limit, created-by UUID, created date range, exact national ID lookup, and CSV export through the backend report endpoint.
+
+## Audit report export
+
+The Audit Inquiry panel supports event type, operator UUID, result limit, and CSV export through the backend audit report endpoint.

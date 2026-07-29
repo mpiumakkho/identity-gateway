@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { getJson, postJson } from "../../api/client";
+import { downloadFile, getJson, postJson } from "../../api/client";
 import { handleApiFailure } from "../../api/errors";
 import { AccountSecurityPanel } from "../auth/AccountSecurityPanel";
 import { AuditInquiryPanel } from "../audit/AuditInquiryPanel";
