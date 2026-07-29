@@ -30,6 +30,8 @@ import static org.hamcrest.Matchers.blankOrNullString;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.not;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -144,7 +146,7 @@ class VerificationControllerTest {
     }
     @Test
     void sessionsReturnsRecentTransactions() throws Exception {
-        when(verificationService.recentSessions(null, null, 20)).thenReturn(List.of(sessionResponse()));
+        when(verificationService.recentSessions(null, null, null, null, null, null, 20)).thenReturn(List.of(sessionResponse()));
 
         mockMvc.perform(get("/api/verification/sessions"))
                 .andExpect(status().isOk())
@@ -155,7 +157,7 @@ class VerificationControllerTest {
 
     @Test
     void sessionsPassesFiltersToService() throws Exception {
-        when(verificationService.recentSessions("DIP_CHIP", "DOPA_VERIFIED", 50)).thenReturn(List.of(sessionResponse()));
+        when(verificationService.recentSessions(eq("DIP_CHIP"), eq("DOPA_VERIFIED"), isNull(), isNull(), isNull(), isNull(), eq(50))).thenReturn(List.of(sessionResponse()));
 
         mockMvc.perform(get("/api/verification/sessions")
                         .param("method", "DIP_CHIP")
@@ -165,14 +167,14 @@ class VerificationControllerTest {
                 .andExpect(jsonPath("$.data", hasSize(1)))
                 .andExpect(jsonPath("$.data[0].method").value("DIP_CHIP"));
 
-        verify(verificationService).recentSessions("DIP_CHIP", "DOPA_VERIFIED", 50);
+        verify(verificationService).recentSessions(eq("DIP_CHIP"), eq("DOPA_VERIFIED"), isNull(), isNull(), isNull(), isNull(), eq(50));
     }
 
 
     @Test
     void sessionsReportReturnsCsvDownload() throws Exception {
         List<VerificationSessionResponse> sessions = List.of(sessionResponse());
-        when(verificationService.recentSessions("DIP_CHIP", "CREATED", 100)).thenReturn(sessions);
+        when(verificationService.recentSessions(eq("DIP_CHIP"), eq("CREATED"), isNull(), isNull(), isNull(), isNull(), eq(100))).thenReturn(sessions);
         when(csvReportService.verificationSessions(sessions)).thenReturn("transactionId,method\n1,DIP_CHIP\n");
 
         mockMvc.perform(get("/api/verification/reports/sessions.csv")
@@ -182,6 +184,31 @@ class VerificationControllerTest {
                 .andExpect(header().string("Content-Disposition", "attachment; filename=\"verification-sessions.csv\""))
                 .andExpect(content().contentType("text/csv"))
                 .andExpect(content().string("transactionId,method\n1,DIP_CHIP\n"));
+    }
+
+    @Test
+    void sessionsPassesAdvancedFiltersToService() throws Exception {
+        UUID createdBy = UUID.fromString("9e04e2eb-d74a-4d55-987c-f38660aa3060");
+        when(verificationService.recentSessions(
+                eq("DIP_CHIP"),
+                eq("CREATED,APPROVED"),
+                eq(createdBy),
+                eq(Instant.parse("2026-07-25T00:00:00Z")),
+                eq(Instant.parse("2026-07-26T00:00:00Z")),
+                eq("1234567890121"),
+                eq(75)
+        )).thenReturn(List.of(sessionResponse()));
+
+        mockMvc.perform(get("/api/verification/sessions")
+                        .param("method", "DIP_CHIP")
+                        .param("status", "CREATED,APPROVED")
+                        .param("createdBy", createdBy.toString())
+                        .param("createdFrom", "2026-07-25T00:00:00Z")
+                        .param("createdTo", "2026-07-26T00:00:00Z")
+                        .param("identityNationalId", "1234567890121")
+                        .param("limit", "75"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data", hasSize(1)));
     }
     @Test
     void sessionReturnsTransactionDetail() throws Exception {

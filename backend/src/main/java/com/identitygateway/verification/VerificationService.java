@@ -18,9 +18,12 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import static com.identitygateway.identity.IdentityDataProtector.isValidNationalId;
 import static com.identitygateway.identity.IdentityDataProtector.maskNationalId;
 
 @Service
@@ -125,11 +128,35 @@ public class VerificationService {
 
     @Transactional(readOnly = true)
     public List<VerificationSessionResponse> recentSessions(String method, String status, int limit) {
+        return recentSessions(method, status, null, null, null, null, limit);
+    }
+
+    @Transactional(readOnly = true)
+    public List<VerificationSessionResponse> recentSessions(
+            String method,
+            String status,
+            UUID createdBy,
+            Instant createdFrom,
+            Instant createdTo,
+            String identityNationalId,
+            int limit
+    ) {
         VerificationMethod methodFilter = parseMethodFilter(method);
-        VerificationStatus statusFilter = parseStatusFilter(status);
+        List<VerificationStatus> statusFilters = parseStatusFilters(status);
+        String normalizedIdentityNationalId = parseIdentityNationalId(identityNationalId);
+        requireValidDateRange(createdFrom, createdTo);
         int cappedLimit = Math.max(1, Math.min(limit, 100));
 
-        return verificationSessionRepository.findRecent(methodFilter, statusFilter, PageRequest.of(0, cappedLimit)).stream()
+        return verificationSessionRepository.searchRecent(
+                        methodFilter,
+                        statusFilters,
+                        statusFilters.isEmpty(),
+                        createdBy,
+                        createdFrom,
+                        createdTo,
+                        normalizedIdentityNationalId,
+                        PageRequest.of(0, cappedLimit)
+                ).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -288,15 +315,42 @@ public class VerificationService {
         return VerificationMethod.from(method);
     }
 
-    private static VerificationStatus parseStatusFilter(String status) {
+    private static List<VerificationStatus> parseStatusFilters(String status) {
         if (status == null || status.isBlank()) {
+            return List.of();
+        }
+
+        return Arrays.stream(status.split(","))
+                .map(String::trim)
+                .filter(value -> !value.isBlank())
+                .map(VerificationService::parseStatusFilter)
+                .distinct()
+                .toList();
+    }
+
+    private static VerificationStatus parseStatusFilter(String status) {
+        try {
+            return VerificationStatus.valueOf(status.toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Unsupported verification status: " + status, ex);
+        }
+    }
+
+    private static String parseIdentityNationalId(String identityNationalId) {
+        if (identityNationalId == null || identityNationalId.isBlank()) {
             return null;
         }
 
-        try {
-            return VerificationStatus.valueOf(status.trim().toUpperCase());
-        } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException("Unsupported verification status: " + status, ex);
+        String normalizedNationalId = identityNationalId.trim();
+        if (!isValidNationalId(normalizedNationalId)) {
+            throw new IllegalArgumentException("Identity search requires a valid 13-digit national ID.");
+        }
+        return normalizedNationalId;
+    }
+
+    private static void requireValidDateRange(Instant createdFrom, Instant createdTo) {
+        if (createdFrom != null && createdTo != null && createdFrom.isAfter(createdTo)) {
+            throw new IllegalArgumentException("createdFrom must be before or equal to createdTo.");
         }
     }
 

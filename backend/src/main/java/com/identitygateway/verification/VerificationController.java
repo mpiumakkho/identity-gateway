@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -63,9 +64,21 @@ public class VerificationController {
     public ApiResponse<List<VerificationSessionResponse>> sessions(
             @RequestParam(required = false) String method,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) UUID createdBy,
+            @RequestParam(required = false) Instant createdFrom,
+            @RequestParam(required = false) Instant createdTo,
+            @RequestParam(required = false) String identityNationalId,
             @RequestParam(defaultValue = "20") int limit
     ) {
-        return ApiResponse.ok(verificationService.recentSessions(method, status, limit));
+        return ApiResponse.ok(verificationService.recentSessions(
+                method,
+                status,
+                createdBy,
+                createdFrom,
+                createdTo,
+                identityNationalId,
+                limit
+        ));
     }
 
     @GetMapping("/sessions/{transactionId}")
@@ -123,9 +136,21 @@ public class VerificationController {
     public ResponseEntity<String> sessionsReport(
             @RequestParam(required = false) String method,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) UUID createdBy,
+            @RequestParam(required = false) Instant createdFrom,
+            @RequestParam(required = false) Instant createdTo,
+            @RequestParam(required = false) String identityNationalId,
             @RequestParam(defaultValue = "100") int limit
     ) {
-        String csv = csvReportService.verificationSessions(verificationService.recentSessions(method, status, limit));
+        String csv = csvReportService.verificationSessions(verificationService.recentSessions(
+                method,
+                status,
+                createdBy,
+                createdFrom,
+                createdTo,
+                identityNationalId,
+                limit
+        ));
         return csvResponse("verification-sessions.csv", csv);
     }
 

@@ -72,6 +72,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 37. Observability flow: actuator liveness/readiness probes, authenticated metrics exposure, request correlation IDs, structured console logs, and Micrometer business gauges.
 38. Config validation flow: startup fail-fast checks for DOPA partner credentials, auth duration bounds, password policy consistency, session cleanup timing, and CORS origins.
 39. Export/report flow: CSV downloads for filtered verification sessions and audit events with safe CSV escaping and attachment headers.
+40. Advanced search flow: verification sessions and CSV reports support date ranges, created-by filters, multi-status combinations, and exact national-ID search while keeping response identity data masked.
 
 ## Data Handling
 

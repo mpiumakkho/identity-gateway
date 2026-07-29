@@ -303,7 +303,7 @@ Returns enabled verification intake methods. Requires authentication.
 
 ### `GET /verification/sessions`
 
-Returns recent persisted verification sessions. Requires authentication. Optional query parameters: `method` (`DIP_CHIP`, `MANUAL_ENTRY`), `status` (`CREATED`, `IDENTITY_CAPTURED`, `DOPA_VERIFIED`, `DOPA_REJECTED`, `APPROVED`, `REJECTED`), and `limit` from `1` to `100`, defaulting to `20`.
+Returns recent persisted verification sessions. Requires authentication. Optional query parameters: `method` (`DIP_CHIP`, `MANUAL_ENTRY`), `status` as one status or a comma-separated list (`CREATED`, `IDENTITY_CAPTURED`, `DOPA_VERIFIED`, `DOPA_REJECTED`, `APPROVED`, `REJECTED`), `createdBy` operator UUID, `createdFrom` ISO-8601 instant, `createdTo` ISO-8601 instant, exact `identityNationalId` for secure identity lookup, and `limit` from `1` to `100`, defaulting to `20`. `identityNationalId` must be a valid 13-digit national ID and responses still return only masked identity summaries.
 
 Response data:
 
@@ -326,7 +326,7 @@ Response data:
 
 ### `GET /verification/reports/sessions.csv`
 
-Exports recent verification sessions as `text/csv`. Supports optional `method`, `status`, and `limit` filters using the same rules as `GET /verification/sessions`. The response is returned as an attachment named `verification-sessions.csv`.
+Exports recent verification sessions as `text/csv`. Supports the same optional filters as `GET /verification/sessions`: `method`, comma-separated `status`, `createdBy`, `createdFrom`, `createdTo`, exact `identityNationalId`, and `limit`. The response is returned as an attachment named `verification-sessions.csv`.
 ### `GET /verification/sessions/{transactionId}`
 
 Returns one verification session by transaction ID. Requires authentication. Unknown IDs return `404` with code `NOT_FOUND`. The response includes optional masked workflow summaries when identity capture, DOPA validation, or closeout has been completed. Sensitive values such as national ID, laser code, raw Dip Chip payloads, passwords, and bearer tokens are not returned.

@@ -32,6 +32,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -159,7 +160,7 @@ class VerificationServiceTest {
     @Test
     void recentSessionsReturnsLatestTransactions() {
         VerificationSessionEntity entity = sessionEntity(VerificationMethod.DIP_CHIP);
-        when(verificationSessionRepository.findRecent(isNull(), isNull(), any(Pageable.class))).thenReturn(List.of(entity));
+        when(verificationSessionRepository.searchRecent(isNull(), anyList(), eq(true), isNull(), isNull(), isNull(), isNull(), any(Pageable.class))).thenReturn(List.of(entity));
 
         List<VerificationSessionResponse> responses = verificationService.recentSessions();
 
@@ -173,16 +174,78 @@ class VerificationServiceTest {
         VerificationSessionEntity entity = sessionEntity(VerificationMethod.DIP_CHIP);
         entity.markIdentityCaptured();
         entity.markDopaVerified();
-        when(verificationSessionRepository.findRecent(eq(VerificationMethod.DIP_CHIP), eq(VerificationStatus.DOPA_VERIFIED), any(Pageable.class)))
+        when(verificationSessionRepository.searchRecent(eq(VerificationMethod.DIP_CHIP), eq(List.of(VerificationStatus.DOPA_VERIFIED)), eq(false), isNull(), isNull(), isNull(), isNull(), any(Pageable.class)))
                 .thenReturn(List.of(entity));
 
         List<VerificationSessionResponse> responses = verificationService.recentSessions("DIP_CHIP", "DOPA_VERIFIED", 50);
 
         assertThat(responses).hasSize(1);
         assertThat(responses.get(0).status()).isEqualTo("DOPA_VERIFIED");
-        verify(verificationSessionRepository).findRecent(eq(VerificationMethod.DIP_CHIP), eq(VerificationStatus.DOPA_VERIFIED), argThat(pageable -> pageable.getPageSize() == 50));
+        verify(verificationSessionRepository).searchRecent(eq(VerificationMethod.DIP_CHIP), eq(List.of(VerificationStatus.DOPA_VERIFIED)), eq(false), isNull(), isNull(), isNull(), isNull(), argThat(pageable -> pageable.getPageSize() == 50));
     }
 
+
+    @Test
+    void recentSessionsAppliesAdvancedSearchFilters() {
+        VerificationSessionEntity entity = sessionEntity(VerificationMethod.MANUAL_ENTRY);
+        UUID createdBy = UUID.fromString("9e04e2eb-d74a-4d55-987c-f38660aa3060");
+        Instant createdFrom = Instant.parse("2026-07-25T00:00:00Z");
+        Instant createdTo = Instant.parse("2026-07-26T00:00:00Z");
+        when(verificationSessionRepository.searchRecent(
+                eq(VerificationMethod.MANUAL_ENTRY),
+                eq(List.of(VerificationStatus.CREATED, VerificationStatus.APPROVED)),
+                eq(false),
+                eq(createdBy),
+                eq(createdFrom),
+                eq(createdTo),
+                eq("1234567890121"),
+                any(Pageable.class)
+        )).thenReturn(List.of(entity));
+
+        List<VerificationSessionResponse> responses = verificationService.recentSessions(
+                "MANUAL_ENTRY",
+                "CREATED,APPROVED",
+                createdBy,
+                createdFrom,
+                createdTo,
+                "1234567890121",
+                75
+        );
+
+        assertThat(responses).hasSize(1);
+        verify(verificationSessionRepository).searchRecent(
+                eq(VerificationMethod.MANUAL_ENTRY),
+                eq(List.of(VerificationStatus.CREATED, VerificationStatus.APPROVED)),
+                eq(false),
+                eq(createdBy),
+                eq(createdFrom),
+                eq(createdTo),
+                eq("1234567890121"),
+                argThat(pageable -> pageable.getPageSize() == 75)
+        );
+    }
+
+    @Test
+    void recentSessionsRejectsInvalidDateRange() {
+        assertThatThrownBy(() -> verificationService.recentSessions(
+                null,
+                null,
+                null,
+                Instant.parse("2026-07-26T00:00:00Z"),
+                Instant.parse("2026-07-25T00:00:00Z"),
+                null,
+                20
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("createdFrom must be before or equal to createdTo.");
+    }
+
+    @Test
+    void recentSessionsRejectsInvalidIdentitySearch() {
+        assertThatThrownBy(() -> verificationService.recentSessions(null, null, null, null, null, "123", 20))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("Identity search requires a valid 13-digit national ID.");
+    }
     @Test
     void recentSessionsRejectsUnsupportedStatusFilter() {
         assertThatThrownBy(() -> verificationService.recentSessions(null, "DONE"))
@@ -192,20 +255,20 @@ class VerificationServiceTest {
 
     @Test
     void recentSessionsCapsRequestedLimit() {
-        when(verificationSessionRepository.findRecent(isNull(), isNull(), any(Pageable.class))).thenReturn(List.of());
+        when(verificationSessionRepository.searchRecent(isNull(), anyList(), eq(true), isNull(), isNull(), isNull(), isNull(), any(Pageable.class))).thenReturn(List.of());
 
         verificationService.recentSessions(null, null, 500);
 
-        verify(verificationSessionRepository).findRecent(isNull(), isNull(), argThat(pageable -> pageable.getPageSize() == 100));
+        verify(verificationSessionRepository).searchRecent(isNull(), anyList(), eq(true), isNull(), isNull(), isNull(), isNull(), argThat(pageable -> pageable.getPageSize() == 100));
     }
 
     @Test
     void recentSessionsUsesMinimumLimit() {
-        when(verificationSessionRepository.findRecent(isNull(), isNull(), any(Pageable.class))).thenReturn(List.of());
+        when(verificationSessionRepository.searchRecent(isNull(), anyList(), eq(true), isNull(), isNull(), isNull(), isNull(), any(Pageable.class))).thenReturn(List.of());
 
         verificationService.recentSessions(null, null, 0);
 
-        verify(verificationSessionRepository).findRecent(isNull(), isNull(), argThat(pageable -> pageable.getPageSize() == 1));
+        verify(verificationSessionRepository).searchRecent(isNull(), anyList(), eq(true), isNull(), isNull(), isNull(), isNull(), argThat(pageable -> pageable.getPageSize() == 1));
     }
 
     @Test

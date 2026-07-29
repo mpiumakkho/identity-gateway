@@ -99,8 +99,8 @@ Use `DOPA_MODE=partner` only when the partner endpoint and credentials are suppl
 - `GET /api/verification/methods` from the enabled method catalog
 - `GET /api/verification/methods/catalog` for admin catalog management
 - `PUT /api/verification/methods/{methodId}/enabled` for admin method enablement
-- `GET /api/verification/sessions` with optional `method` and `status` filters
-- `GET /api/verification/reports/sessions.csv` for filtered transaction CSV export
+- `GET /api/verification/sessions` with optional `method`, comma-separated `status`, `createdBy`, `createdFrom`, `createdTo`, and exact `identityNationalId` filters
+- `GET /api/verification/reports/sessions.csv` for transaction CSV export with the same session filters
 - `GET /api/audit-events/report.csv` for audit CSV export
 - `GET /api/verification/sessions/{transactionId}` with masked workflow summaries
 - `POST /api/verification/sessions`
