@@ -47,6 +47,17 @@ npm run dev
 
 The frontend dev server is locked to `http://127.0.0.1:7000` and proxies `/api` calls to `http://localhost:8080`.
 
+
+## Deployment
+
+Container deployment examples are included for PostgreSQL, the backend API, and the frontend Nginx server.
+
+```bash
+cp .env.production.example .env.production
+docker compose --env-file .env.production -f compose.prod.yaml up -d --build
+```
+
+See `docs/deployment.md` for environment settings, bootstrap operator guidance, and reverse proxy notes.
 ## Design Principles
 
 - New naming and package structure with no dependency on the previous project identity.

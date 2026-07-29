@@ -1,0 +1,71 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-identity_gateway}
+      POSTGRES_USER: ${POSTGRES_USER:-identity_gateway}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - identity_gateway_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-identity_gateway}
+      POSTGRES_USER: ${POSTGRES_USER:-identity_gateway}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-http://localhost}
+      BOOTSTRAP_OPERATOR_ENABLED: ${BOOTSTRAP_OPERATOR_ENABLED:-false}
+      BOOTSTRAP_OPERATOR_USERNAME: ${BOOTSTRAP_OPERATOR_USERNAME:-}
+      BOOTSTRAP_OPERATOR_PASSWORD: ${BOOTSTRAP_OPERATOR_PASSWORD:-}
+      BOOTSTRAP_OPERATOR_DISPLAY_NAME: ${BOOTSTRAP_OPERATOR_DISPLAY_NAME:-Operations User}
+      BOOTSTRAP_OPERATOR_ROLE: ${BOOTSTRAP_OPERATOR_ROLE:-OPERATIONS}
+      AUTH_LOCKOUT_ENABLED: ${AUTH_LOCKOUT_ENABLED:-true}
+      AUTH_LOCKOUT_MAX_FAILED_ATTEMPTS: ${AUTH_LOCKOUT_MAX_FAILED_ATTEMPTS:-5}
+      AUTH_LOCKOUT_DURATION: ${AUTH_LOCKOUT_DURATION:-PT15M}
+      AUTH_PASSWORD_MIN_LENGTH: ${AUTH_PASSWORD_MIN_LENGTH:-12}
+      AUTH_PASSWORD_MAX_LENGTH: ${AUTH_PASSWORD_MAX_LENGTH:-128}
+      AUTH_PASSWORD_REQUIRE_UPPERCASE: ${AUTH_PASSWORD_REQUIRE_UPPERCASE:-true}
+      AUTH_PASSWORD_REQUIRE_LOWERCASE: ${AUTH_PASSWORD_REQUIRE_LOWERCASE:-true}
+      AUTH_PASSWORD_REQUIRE_DIGIT: ${AUTH_PASSWORD_REQUIRE_DIGIT:-true}
+      AUTH_PASSWORD_REQUIRE_SPECIAL: ${AUTH_PASSWORD_REQUIRE_SPECIAL:-false}
+      AUTH_SESSION_CLEANUP_ENABLED: ${AUTH_SESSION_CLEANUP_ENABLED:-true}
+      AUTH_SESSION_CLEANUP_RETENTION: ${AUTH_SESSION_CLEANUP_RETENTION:-P30D}
+      AUTH_SESSION_CLEANUP_FIXED_DELAY: ${AUTH_SESSION_CLEANUP_FIXED_DELAY:-PT1H}
+      DOPA_MODE: ${DOPA_MODE:-local}
+      DOPA_BASE_URL: ${DOPA_BASE_URL:-}
+      DOPA_VALIDATION_PATH: ${DOPA_VALIDATION_PATH:-/validate}
+      DOPA_API_KEY: ${DOPA_API_KEY:-}
+      DOPA_CONNECT_TIMEOUT: ${DOPA_CONNECT_TIMEOUT:-PT3S}
+      DOPA_READ_TIMEOUT: ${DOPA_READ_TIMEOUT:-PT10S}
+      DOPA_RETRY_ATTEMPTS: ${DOPA_RETRY_ATTEMPTS:-1}
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/actuator/health/readiness | grep -q UP"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  frontend:
+    build:
+      context: ./frontend
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${FRONTEND_PORT:-80}:80"
+
+volumes:
+  identity_gateway_pgdata:

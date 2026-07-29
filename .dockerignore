@@ -1,0 +1,6 @@
+.git
+.github
+**/.run
+**/target
+**/node_modules
+**/dist

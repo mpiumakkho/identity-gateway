@@ -73,6 +73,7 @@ Preline is loaded with a dynamic import after React mounts so the main applicati
 38. Config validation flow: startup fail-fast checks for DOPA partner credentials, auth duration bounds, password policy consistency, session cleanup timing, and CORS origins.
 39. Export/report flow: CSV downloads for filtered verification sessions and audit events with safe CSV escaping and attachment headers.
 40. Advanced search flow: verification sessions and CSV reports support date ranges, created-by filters, multi-status combinations, and exact national-ID search while keeping response identity data masked.
+41. Deployment flow: container build files, production Compose stack, environment example, frontend Nginx proxy, and deployment notes for bootstrap and reverse proxy operation.
 
 ## Data Handling
 
